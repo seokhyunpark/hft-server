@@ -1,3 +1,12 @@
 spring:
   application:
     name: HFT Server
+
+logging:
+  level:
+    root: INFO
+    io.github.seokhyunpark.hft: DEBUG
+
+hft:
+  stream:
+    market-uri: wss://data-stream.binance.vision:443/ws/btcfdusd@depth20@100ms
