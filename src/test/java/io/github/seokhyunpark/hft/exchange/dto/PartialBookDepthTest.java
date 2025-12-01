@@ -12,7 +12,7 @@ public class PartialBookDepthTest {
 
     @Test
     @DisplayName("PartialBookDepth 문자열이 DTO로 정상 파싱되어야 한다.")
-    public void parsingSuccess() throws Exception {
+    void parsingSuccess() throws Exception {
         String data = """
                 {
                   "lastUpdateId": 37530297893,
@@ -194,7 +194,7 @@ public class PartialBookDepthTest {
 
     @Test
     @DisplayName("PartialBookDepth 문자열에 모르는 필드가 있어도 에러 없이 파싱되어야 한다.")
-    public void ignoreUnknown() throws Exception {
+    void ignoreUnknown() throws Exception {
         String data = """
                 {
                   "lastUpdateId": 37530297893,

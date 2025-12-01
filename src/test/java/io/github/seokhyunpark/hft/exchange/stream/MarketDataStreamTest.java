@@ -23,7 +23,7 @@ public class MarketDataStreamTest {
 
     @Test
     @DisplayName("메시지가 오면 리스너에게 데이터를 넘겨줘야 한다.")
-    public void onMessageSuccess() throws URISyntaxException {
+    void onMessageSuccess() throws URISyntaxException {
         URI uri = new URI("wss//test.com");
         TestListener listener = new TestListener();
 
@@ -54,7 +54,7 @@ public class MarketDataStreamTest {
 
     @Test
     @DisplayName("잘못된 메시지가 오면 리스너에게 아무것도 넘기지 말아야 한다.")
-    public void onMessageFail() throws URISyntaxException {
+    void onMessageFail() throws URISyntaxException {
         URI uri = new URI("wss//test.com");
         TestListener listener = new TestListener();
 
