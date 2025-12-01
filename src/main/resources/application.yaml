@@ -1,6 +1,8 @@
 spring:
   application:
     name: HFT Server
+  config:
+    import: "file:./secrets/secrets.yaml"
 
 logging:
   level:
@@ -10,3 +12,8 @@ logging:
 hft:
   stream:
     market-uri: wss://data-stream.binance.vision:443/ws/btcfdusd@depth20@100ms
+    user-uri: wss://ws-api.binance.com:443/ws-api/v3
+
+  exchange:
+    api-key: ""
+    private-key-path: "./secrets/private_key.pem"
