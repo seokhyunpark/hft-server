@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.URI;
 import java.security.PrivateKey;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -205,5 +207,32 @@ public class UserDataStreamTest {
         assertThat(listener.receivedOrder.quoteOrderQty()).isEqualTo("0.00000000");
         assertThat(listener.receivedOrder.workingTime()).isEqualTo(1499405658657L);
         assertThat(listener.receivedOrder.selfTradePreventionMode()).isEqualTo("NONE");
+    }
+
+    @Test
+    @DisplayName("구독 성공 메시지를 받으면 await가 즉시 true를 반환해야 한다.")
+    void awaitSuccess() throws Exception {
+        CompletableFuture.runAsync(() -> {
+            String message = """
+                    {
+                      "id": "d3df8a21-98ea-4fe0-8f4e-0fcea5d418b7",
+                      "status": 200,
+                      "result": {
+                        "subscriptionId": 0
+                      }
+                    }
+                    """;
+            stream.onMessage(message);
+        });
+
+        boolean result = stream.awaitUserDataStreamReady(5, TimeUnit.SECONDS);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("구독 응답이 오지 않으면 지정된 시간 후 false를 반환해야 한다.")
+    void awaitTimeout() throws Exception {
+        boolean result = stream.awaitUserDataStreamReady(100, java.util.concurrent.TimeUnit.MILLISECONDS);
+        assertThat(result).isFalse();
     }
 }
