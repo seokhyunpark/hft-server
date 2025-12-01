@@ -46,10 +46,10 @@ public class UserDataStreamTest {
     }
 
     private final TestUserListener listener = new TestUserListener();
-    private final StubSignatureUtil stubUtil = new StubSignatureUtil();
     private final UserDataStream stream;
 
     public UserDataStreamTest() throws Exception {
+        StubSignatureUtil stubUtil = new StubSignatureUtil();
         this.stream = new UserDataStream(URI.create("wss://test.com"), listener, "dummyKey", "dummyPath", stubUtil);
     }
 
