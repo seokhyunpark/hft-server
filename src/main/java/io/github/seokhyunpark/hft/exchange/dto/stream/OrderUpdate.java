@@ -1,4 +1,4 @@
-package io.github.seokhyunpark.hft.exchange.dto;
+package io.github.seokhyunpark.hft.exchange.dto.stream;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

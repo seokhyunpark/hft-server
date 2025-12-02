@@ -7,7 +7,7 @@ import java.net.URI;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
-import io.github.seokhyunpark.hft.exchange.dto.PartialBookDepth;
+import io.github.seokhyunpark.hft.exchange.dto.stream.PartialBookDepth;
 import io.github.seokhyunpark.hft.exchange.listener.MarketEventListener;
 import lombok.extern.slf4j.Slf4j;
 

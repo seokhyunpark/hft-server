@@ -8,7 +8,7 @@ import java.net.URISyntaxException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import io.github.seokhyunpark.hft.exchange.dto.PartialBookDepth;
+import io.github.seokhyunpark.hft.exchange.dto.stream.PartialBookDepth;
 import io.github.seokhyunpark.hft.exchange.listener.MarketEventListener;
 
 public class MarketDataStreamTest {

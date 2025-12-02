@@ -15,10 +15,10 @@ import org.java_websocket.handshake.ServerHandshake;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.github.seokhyunpark.hft.exchange.dto.AccountUpdate;
-import io.github.seokhyunpark.hft.exchange.dto.BalanceUpdate;
-import io.github.seokhyunpark.hft.exchange.dto.LogonRequest;
-import io.github.seokhyunpark.hft.exchange.dto.OrderUpdate;
+import io.github.seokhyunpark.hft.exchange.dto.stream.AccountUpdate;
+import io.github.seokhyunpark.hft.exchange.dto.stream.BalanceUpdate;
+import io.github.seokhyunpark.hft.exchange.dto.stream.LogonRequest;
+import io.github.seokhyunpark.hft.exchange.dto.stream.OrderUpdate;
 import io.github.seokhyunpark.hft.exchange.listener.UserEventListener;
 import io.github.seokhyunpark.hft.exchange.util.SignatureUtil;
 import lombok.extern.slf4j.Slf4j;
