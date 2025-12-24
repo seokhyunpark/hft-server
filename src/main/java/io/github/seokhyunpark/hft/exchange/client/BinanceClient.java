@@ -14,6 +14,8 @@ import org.springframework.web.client.RestClient;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.github.seokhyunpark.hft.exchange.dto.rest.CancelOrderRequest;
+import io.github.seokhyunpark.hft.exchange.dto.rest.CancelOrderResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.NewOrderRequest;
 import io.github.seokhyunpark.hft.exchange.dto.rest.NewOrderResponse;
 import io.github.seokhyunpark.hft.exchange.util.SignatureUtil;
@@ -105,6 +107,20 @@ public class BinanceClient {
                 "POST",
                 request,
                 NewOrderResponse.class
+        );
+    }
+
+    public CancelOrderResponse cancelOrder(String symbol, long orderId) {
+        CancelOrderRequest request = new CancelOrderRequest();
+        request.setSymbol(symbol);
+        request.setOrderId(orderId);
+        request.setTimestamp(getCurrentTimestamp());
+
+        return sendRequest(
+                "/api/v3/order",
+                "DELETE",
+                request,
+                CancelOrderResponse.class
         );
     }
 
