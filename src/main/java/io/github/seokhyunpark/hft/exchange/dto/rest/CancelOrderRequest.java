@@ -17,7 +17,7 @@ public class CancelOrderRequest {
     String symbol;
 
     @JsonProperty("orderId")
-    long orderId;
+    Long orderId;
 
     @JsonProperty("origClientOrderId")
     String origClientOrderId;
@@ -32,5 +32,5 @@ public class CancelOrderRequest {
     String recvWindow;
 
     @JsonProperty("timestamp")
-    long timestamp;
+    Long timestamp;
 }

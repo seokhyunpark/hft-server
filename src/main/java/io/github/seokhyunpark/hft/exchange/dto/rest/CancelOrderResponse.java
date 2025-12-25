@@ -8,10 +8,10 @@ public record CancelOrderResponse(
         // https://developers.binance.com/docs/binance-spot-api-docs/rest-api/trading-endpoints#cancel-order-trade
         @JsonProperty("symbol") String symbol,
         @JsonProperty("origClientOrderId") String origClientOrderId,
-        @JsonProperty("orderId") long orderId,
-        @JsonProperty("orderListId") long orderListId,
+        @JsonProperty("orderId") Long orderId,
+        @JsonProperty("orderListId") Long orderListId,
         @JsonProperty("clientOrderId") String clientOrderId,
-        @JsonProperty("transactTime") long transactTime,
+        @JsonProperty("transactTime") Long transactTime,
         @JsonProperty("price") String price,
         @JsonProperty("origQty") String origQty,
         @JsonProperty("executedQty") String executedQty,

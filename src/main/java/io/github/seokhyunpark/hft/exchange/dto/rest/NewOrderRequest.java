@@ -38,16 +38,16 @@ public class NewOrderRequest {
     private String newClientOrderId;
 
     @JsonProperty("strategyId")
-    private long strategyId;
+    private Long strategyId;
 
     @JsonProperty("strategyType")
-    private int strategyType;
+    private Integer strategyType;
 
     @JsonProperty("stopPrice")
     private String stopPrice;
 
     @JsonProperty("trailingDelta")
-    private long trailingDelta;
+    private Long trailingDelta;
 
     @JsonProperty("icebergQty")
     private String icebergQty;
@@ -62,7 +62,7 @@ public class NewOrderRequest {
     private String pegPriceType;
 
     @JsonProperty("pegOffsetValue")
-    private int pegOffsetValue;
+    private Integer pegOffsetValue;
 
     @JsonProperty("pegOffsetType")
     private String pegOffsetType;
@@ -71,5 +71,5 @@ public class NewOrderRequest {
     private String recvWindow;
 
     @JsonProperty("timestamp")
-    private long timestamp;
+    private Long timestamp;
 }
