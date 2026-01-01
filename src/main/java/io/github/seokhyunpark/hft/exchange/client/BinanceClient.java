@@ -20,6 +20,8 @@ import io.github.seokhyunpark.hft.exchange.dto.rest.CancelOrderResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountRequest;
 import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountResponse.Balance;
+import io.github.seokhyunpark.hft.exchange.dto.rest.GetOrderRequest;
+import io.github.seokhyunpark.hft.exchange.dto.rest.GetOrderResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.NewOrderRequest;
 import io.github.seokhyunpark.hft.exchange.dto.rest.NewOrderResponse;
 import io.github.seokhyunpark.hft.exchange.util.SignatureUtil;
@@ -111,6 +113,20 @@ public class BinanceClient {
                 "POST",
                 request,
                 NewOrderResponse.class
+        );
+    }
+
+    public GetOrderResponse getOrder(String symbol, long orderId) {
+        GetOrderRequest request = new GetOrderRequest();
+        request.setSymbol(symbol);
+        request.setOrderId(orderId);
+        request.setTimestamp(getCurrentTimestamp());
+
+        return sendRequest(
+                "/api/v3/order",
+                "GET",
+                request,
+                GetOrderResponse.class
         );
     }
 
