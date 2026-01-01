@@ -29,6 +29,9 @@ public class ExchangeService {
     private MarketDataStream marketDataStream;
     private UserDataStream userDataStream;
 
+    @Value("${hft.websocket.enabled}")
+    private boolean websocketEnabled;
+
     @Value("${hft.stream.market-uri}")
     private String marketUri;
 
@@ -43,6 +46,11 @@ public class ExchangeService {
 
     @PostConstruct
     public void connect() {
+        if (!websocketEnabled) {
+            log.info("웹소켓 연결 설정이 비활성화되어 있습니다. 연결을 건너뜁니다.");
+            return;
+        }
+
         boolean userStreamConnected = connectUserStream();
         if (userStreamConnected) {
             connectMarketStream();
