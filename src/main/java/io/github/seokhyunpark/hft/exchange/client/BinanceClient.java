@@ -16,6 +16,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.github.seokhyunpark.hft.exchange.dto.rest.CancelOrderRequest;
 import io.github.seokhyunpark.hft.exchange.dto.rest.CancelOrderResponse;
+import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountRequest;
+import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.NewOrderRequest;
 import io.github.seokhyunpark.hft.exchange.dto.rest.NewOrderResponse;
 import io.github.seokhyunpark.hft.exchange.util.SignatureUtil;
@@ -121,6 +123,19 @@ public class BinanceClient {
                 "DELETE",
                 request,
                 CancelOrderResponse.class
+        );
+    }
+
+    public GetAccountResponse getAccount() {
+        GetAccountRequest request = new GetAccountRequest();
+        request.setOmitZeroBalances(true);
+        request.setTimestamp(getCurrentTimestamp());
+
+        return sendRequest(
+                "/api/v3/account",
+                "GET",
+                request,
+                GetAccountResponse.class
         );
     }
 
