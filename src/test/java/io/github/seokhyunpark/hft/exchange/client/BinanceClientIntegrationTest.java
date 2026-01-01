@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import io.github.seokhyunpark.hft.exchange.dto.rest.CancelOrderResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountResponse.Balance;
+import io.github.seokhyunpark.hft.exchange.dto.rest.GetOrderResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.NewOrderResponse;
 import lombok.extern.slf4j.Slf4j;
 
@@ -59,6 +60,10 @@ public class BinanceClientIntegrationTest {
             NewOrderResponse newOrderResponse = binanceClient.buyLimitMaker(symbol, "0.0001", "50000");
             log.info("\t>> 주문번호: {}", newOrderResponse.orderId());
             assertThat(newOrderResponse.orderId()).isGreaterThan(0);
+
+            GetOrderResponse getOrderResponse = binanceClient.getOrder(symbol, newOrderResponse.orderId());
+            log.info("\t>> 주문조회: {}", getOrderResponse.toString());
+            assertThat(getOrderResponse.orderId()).isEqualTo(newOrderResponse.orderId());
 
             CancelOrderResponse cancelOrderResponse = binanceClient.cancelOrder(symbol, newOrderResponse.orderId());
             log.info("\t>> 취소된 주문번호: {}", cancelOrderResponse.orderId());
