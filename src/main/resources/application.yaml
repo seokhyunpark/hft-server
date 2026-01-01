@@ -17,3 +17,6 @@ hft:
   exchange:
     api-key: ""
     private-key-path: "./secrets/private_key.pem"
+
+  websocket:
+    enabled: true

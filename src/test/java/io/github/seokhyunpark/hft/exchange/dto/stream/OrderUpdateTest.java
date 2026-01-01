@@ -1,4 +1,4 @@
-package io.github.seokhyunpark.hft.exchange.dto;
+package io.github.seokhyunpark.hft.exchange.dto.stream;
 
 
 import static org.assertj.core.api.Assertions.assertThat;

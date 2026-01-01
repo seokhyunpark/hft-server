@@ -1,11 +1,11 @@
 package io.github.seokhyunpark.hft.exchange.service;
 
-import io.github.seokhyunpark.hft.exchange.dto.AccountUpdate;
-import io.github.seokhyunpark.hft.exchange.dto.BalanceUpdate;
-import io.github.seokhyunpark.hft.exchange.dto.OrderUpdate;
+import io.github.seokhyunpark.hft.exchange.dto.stream.AccountUpdate;
+import io.github.seokhyunpark.hft.exchange.dto.stream.BalanceUpdate;
+import io.github.seokhyunpark.hft.exchange.dto.stream.OrderUpdate;
 import io.github.seokhyunpark.hft.exchange.listener.UserEventListener;
 import io.github.seokhyunpark.hft.exchange.stream.MarketDataStream;
-import io.github.seokhyunpark.hft.exchange.dto.PartialBookDepth;
+import io.github.seokhyunpark.hft.exchange.dto.stream.PartialBookDepth;
 import io.github.seokhyunpark.hft.exchange.listener.MarketEventListener;
 import io.github.seokhyunpark.hft.exchange.stream.UserDataStream;
 import io.github.seokhyunpark.hft.exchange.util.SignatureUtil;
@@ -29,6 +29,9 @@ public class ExchangeService {
     private MarketDataStream marketDataStream;
     private UserDataStream userDataStream;
 
+    @Value("${hft.websocket.enabled}")
+    private boolean websocketEnabled;
+
     @Value("${hft.stream.market-uri}")
     private String marketUri;
 
@@ -43,6 +46,11 @@ public class ExchangeService {
 
     @PostConstruct
     public void connect() {
+        if (!websocketEnabled) {
+            log.info("웹소켓 연결 설정이 비활성화되어 있습니다. 연결을 건너뜁니다.");
+            return;
+        }
+
         boolean userStreamConnected = connectUserStream();
         if (userStreamConnected) {
             connectMarketStream();
