@@ -4,6 +4,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -18,6 +19,7 @@ import io.github.seokhyunpark.hft.exchange.dto.rest.CancelOrderRequest;
 import io.github.seokhyunpark.hft.exchange.dto.rest.CancelOrderResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountRequest;
 import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountResponse;
+import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountResponse.Balance;
 import io.github.seokhyunpark.hft.exchange.dto.rest.NewOrderRequest;
 import io.github.seokhyunpark.hft.exchange.dto.rest.NewOrderResponse;
 import io.github.seokhyunpark.hft.exchange.util.SignatureUtil;
@@ -137,6 +139,17 @@ public class BinanceClient {
                 request,
                 GetAccountResponse.class
         );
+    }
+
+    public Balance getBalance(String asset) {
+        List<Balance> balances = getAccount().balances();
+
+        for (Balance balance : balances) {
+            if (balance.asset().equals(asset)) {
+                return balance;
+            }
+        }
+        return new Balance(asset, "0.0", "0.0");
     }
 
     private <T> T sendRequest(String endpoint, String method, Object requestDto, Class<T> responseType) {
