@@ -13,7 +13,7 @@ import io.github.seokhyunpark.hft.exchange.listener.UserEventListener;
 public class TradingCore implements MarketEventListener, UserEventListener {
 
     @Override
-    public void onPartialBookDepthReceived(PartialBookDepth partialBookDepth) {
+    public void onPartialBookDepthReceived(PartialBookDepth depth) {
 
     }
 
