@@ -12,5 +12,6 @@ public record TradingProperties(
         String reserveAsset,
         BigDecimal minOrderSize,
         BigDecimal priceTickSize,
-        BigDecimal qtyTickSize
+        BigDecimal qtyTickSize,
+        BigDecimal buyWallThresholdUsd
 ) {}
