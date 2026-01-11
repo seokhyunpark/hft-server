@@ -9,4 +9,11 @@ public record OrderParams(BigDecimal price, BigDecimal qty) {
         }
         return price.compareTo(BigDecimal.ZERO) <= 0 || qty.compareTo(BigDecimal.ZERO) <= 0;
     }
+
+    public BigDecimal getAmount() {
+        if (isInvalid()) {
+            return BigDecimal.ZERO;
+        }
+        return price.multiply(qty);
+    }
 }
