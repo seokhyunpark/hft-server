@@ -1,5 +1,6 @@
 package io.github.seokhyunpark.hft.trading.manager;
 
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,5 +37,35 @@ public class OrderManager {
 
     public boolean hasOpenOrderCapacity() {
         return buyOrders.size() + sellOrders.size() < MAX_OPEN_ORDERS - OPEN_ORDERS_MARGIN;
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // 매수 주문 관리
+    // ----------------------------------------------------------------------------------------------------
+    public int getBuyOrderCount() {
+        return buyOrders.size();
+    }
+
+    public void addBuyOrder(OrderInfo orderInfo) {
+        buyOrders.put(orderInfo.orderId(), orderInfo);
+    }
+
+    public void removeBuyOrder(long orderId) {
+        buyOrders.remove(orderId);
+    }
+
+    public boolean hasBuyOrderAt(BigDecimal price) {
+        return buyOrders.values().stream()
+                .anyMatch(order -> order.numericPrice().compareTo(price) == 0);
+    }
+
+    public boolean isBuyOrdersFull() {
+        return buyOrders.size() >= BUY_ORDERS_LIMIT;
+    }
+
+    public OrderInfo getOldestBuyOrder() {
+        return buyOrders.values().stream()
+                .min(Comparator.comparingLong(OrderInfo::orderId))
+                .orElse(null);
     }
 }
