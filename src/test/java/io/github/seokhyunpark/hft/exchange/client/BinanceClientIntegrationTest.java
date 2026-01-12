@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.ResponseEntity;
 
 import io.github.seokhyunpark.hft.exchange.dto.rest.CancelOrderResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountResponse;
@@ -28,8 +29,12 @@ public class BinanceClientIntegrationTest {
 
     @Test
     @DisplayName("계좌 조회 및 주문 가능한 스테이블코인으로 주문 및 취소 통합 테스트")
-    void integratedAccountAndOrderTest() {
-        GetAccountResponse accountResponse = binanceClient.getAccount();
+    void integratedAccountAndOrderTest() throws Exception {
+        ResponseEntity<GetAccountResponse> accountResponseEntity = binanceClient.getAccount();
+        assertThat(accountResponseEntity.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(accountResponseEntity).isNotNull();
+
+        GetAccountResponse accountResponse = accountResponseEntity.getBody();
         assertThat(accountResponse).isNotNull();
 
         log.info("계좌 UID: {}", accountResponse.uid());
@@ -57,17 +62,37 @@ public class BinanceClientIntegrationTest {
         log.info("주문 및 취소 테스트 시작:");
 
         try {
-            NewOrderResponse newOrderResponse = binanceClient.buyLimitMaker(symbol, "0.0001", "50000");
+            // 주문 요청
+            ResponseEntity<NewOrderResponse> newOrderResponseEntity = binanceClient.buyLimitMaker(symbol, "0.0001", "50000");
+            assertThat(newOrderResponseEntity.getStatusCode().is2xxSuccessful()).isTrue();
+
+            NewOrderResponse newOrderResponse = newOrderResponseEntity.getBody();
+            assertThat(newOrderResponse).isNotNull();
             log.info("\t>> 주문번호: {}", newOrderResponse.orderId());
             assertThat(newOrderResponse.orderId()).isGreaterThan(0);
 
-            GetOrderResponse getOrderResponse = binanceClient.getOrder(symbol, newOrderResponse.orderId());
-            log.info("\t>> 주문조회: {}", getOrderResponse.toString());
+            // 대기
+            log.info("\t>> 주문 후 1초 대기 중...");
+            Thread.sleep(1000);
+
+            // 주문 조회
+            ResponseEntity<GetOrderResponse> getOrderResponseEntity = binanceClient.getOrder(symbol, newOrderResponse.orderId());
+            assertThat(getOrderResponseEntity.getStatusCode().is2xxSuccessful()).isTrue();
+
+            GetOrderResponse getOrderResponse = getOrderResponseEntity.getBody();
+            assertThat(getOrderResponse).isNotNull();
+            log.info("\t>> 주문조회: {}", getOrderResponse);
             assertThat(getOrderResponse.orderId()).isEqualTo(newOrderResponse.orderId());
 
-            CancelOrderResponse cancelOrderResponse = binanceClient.cancelOrder(symbol, newOrderResponse.orderId());
+            // 주문 취소
+            ResponseEntity<CancelOrderResponse> cancelOrderResponseEntity = binanceClient.cancelOrder(symbol, newOrderResponse.orderId());
+            assertThat(cancelOrderResponseEntity.getStatusCode().is2xxSuccessful()).isTrue();
+
+            CancelOrderResponse cancelOrderResponse = cancelOrderResponseEntity.getBody();
+            assertThat(cancelOrderResponse).isNotNull();
             log.info("\t>> 취소된 주문번호: {}", cancelOrderResponse.orderId());
             assertThat(cancelOrderResponse.orderId()).isEqualTo(newOrderResponse.orderId());
+
         } catch (Exception e) {
             log.error("주문/취소 테스트 중 에러 발생: {}", e.getMessage());
             throw e;
