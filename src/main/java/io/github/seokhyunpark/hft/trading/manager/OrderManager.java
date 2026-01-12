@@ -26,4 +26,15 @@ public class OrderManager {
     private final Map<Long, OrderInfo> buyOrders = new ConcurrentHashMap<>();
     private final Map<Long, OrderInfo> sellOrders = new ConcurrentHashMap<>();
     private final ConcurrentSkipListSet<OrderInfo> canceledOrders = new ConcurrentSkipListSet<>(canceledOrderComparator);
+
+    // ----------------------------------------------------------------------------------------------------
+    // 공통 주문 관리
+    // ----------------------------------------------------------------------------------------------------
+    public int getOpenOrdersCount() {
+        return buyOrders.size() + sellOrders.size();
+    }
+
+    public boolean hasOpenOrderCapacity() {
+        return buyOrders.size() + sellOrders.size() < MAX_OPEN_ORDERS - OPEN_ORDERS_MARGIN;
+    }
 }
