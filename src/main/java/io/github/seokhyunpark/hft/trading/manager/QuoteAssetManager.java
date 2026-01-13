@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-public class AssetManager {
+public class QuoteAssetManager {
     private final AtomicReference<BigDecimal> quoteBalance = new AtomicReference<>(BigDecimal.ZERO);
 
     public BigDecimal getQuoteBalance() {

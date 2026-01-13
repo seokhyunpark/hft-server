@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 import io.github.seokhyunpark.hft.exchange.client.BinanceClient;
 import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountResponse.Balance;
-import io.github.seokhyunpark.hft.trading.manager.AssetManager;
+import io.github.seokhyunpark.hft.trading.manager.QuoteAssetManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class AssetManagerInitializer {
     private final BinanceClient binanceClient;
-    private final AssetManager assetManager;
+    private final QuoteAssetManager quoteAssetManager;
 
     @Value("${hft.trading.quote-asset}")
     private String quoteAsset;
@@ -32,7 +32,7 @@ public class AssetManagerInitializer {
         }
 
         BigDecimal balance = new BigDecimal(quoteBalance.free());
-        assetManager.syncQuoteBalance(balance);
+        quoteAssetManager.syncQuoteBalance(balance);
         log.debug("[INIT-ASSET-SUCCESS] AssetManager 초기화 성공");
     }
 }

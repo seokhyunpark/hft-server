@@ -13,7 +13,7 @@ import io.github.seokhyunpark.hft.exchange.listener.UserEventListener;
 import io.github.seokhyunpark.hft.trading.config.TradingProperties;
 import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
 import io.github.seokhyunpark.hft.trading.dto.OrderParams;
-import io.github.seokhyunpark.hft.trading.manager.AssetManager;
+import io.github.seokhyunpark.hft.trading.manager.QuoteAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.OrderManager;
 import io.github.seokhyunpark.hft.trading.manager.RateLimitManager;
 import io.github.seokhyunpark.hft.trading.service.OrderService;
@@ -26,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TradingCore implements MarketEventListener, UserEventListener {
     private final TradingStrategy tradingStrategy;
-    private final AssetManager assetManager;
+    private final QuoteAssetManager quoteAssetManager;
     private final OrderManager orderManager;
     private final RateLimitManager rateLimitManager;
     private final OrderService orderService;
@@ -58,8 +58,8 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         }
 
         // USD 잔고 확인
-        if (!assetManager.hasQuoteBalanceFor(buyParams.getAmount())) {
-            log.debug("[REJECT] USD 잔고 부족: [보유: {}, 필요: {}]", assetManager.getQuoteBalance(), buyParams.getAmount());
+        if (!quoteAssetManager.hasQuoteBalanceFor(buyParams.getAmount())) {
+            log.debug("[REJECT] USD 잔고 부족: [보유: {}, 필요: {}]", quoteAssetManager.getQuoteBalance(), buyParams.getAmount());
             return;
         }
 
@@ -71,7 +71,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
 
         // 매수 주문 (상태 낙관적 업데이트)
         rateLimitManager.onOrderPlaced();
-        assetManager.deductQuoteBalance(buyParams.getAmount());
+        quoteAssetManager.deductQuoteBalance(buyParams.getAmount());
         orderService.executeBuyOrder(buyParams);
 
         // Buy Orders 개수 관리
@@ -100,7 +100,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         for (AccountUpdate.Balance balanceEntry : accountUpdate.balances()) {
             if (balanceEntry.asset().equals(tradingProperties.quoteAsset())) {
                 BigDecimal free = new BigDecimal(balanceEntry.free());
-                assetManager.syncQuoteBalance(free);
+                quoteAssetManager.syncQuoteBalance(free);
                 break;
             }
         }
@@ -118,7 +118,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
 
         if (balanceUpdate.asset().equals(tradingProperties.quoteAsset())) {
             BigDecimal delta = new BigDecimal(balanceUpdate.balanceDelta());
-            assetManager.addQuoteBalance(delta);
+            quoteAssetManager.addQuoteBalance(delta);
         }
     }
 
