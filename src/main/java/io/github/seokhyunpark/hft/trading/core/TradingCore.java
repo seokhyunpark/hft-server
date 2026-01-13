@@ -41,6 +41,9 @@ public class TradingCore implements MarketEventListener, UserEventListener {
             return;
         }
 
+        // 매도 1호가 가격 업데이트
+        tradingStrategy.updateBestAskPrice(depth);
+
         // 중복된 가격 확인
         OrderParams buyParams = tradingStrategy.calculateBuyOrderParams(depth);
         if (buyParams.isInvalid() || orderManager.hasBuyOrderAt(buyParams.price())) {

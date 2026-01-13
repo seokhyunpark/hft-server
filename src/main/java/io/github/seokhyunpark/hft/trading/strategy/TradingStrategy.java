@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TradingStrategy {
     private final TradingProperties tradingProperties;
+
+    private final AtomicReference<BigDecimal> latestBestAskPrice = new AtomicReference<>(BigDecimal.ZERO);
 
     // ----------------------------------------------------------------------------------------------------
     // 매수 주문 전략
@@ -57,5 +60,14 @@ public class TradingStrategy {
             return BigDecimal.ZERO;
         }
         return tradingProperties.minOrderSize().divide(price, tradingProperties.qtyTickSize().scale(), RoundingMode.CEILING);
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // 매도 주문 전략
+    // ----------------------------------------------------------------------------------------------------
+    public void updateBestAskPrice(PartialBookDepth depth) {
+        if (depth != null && depth.asks() != null && !depth.asks().isEmpty()) {
+            latestBestAskPrice.set(new BigDecimal(depth.asks().getFirst().getFirst()));
+        }
     }
 }
