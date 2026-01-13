@@ -44,10 +44,10 @@ public class OrderService {
                         response.transactTime()
                 );
                 orderManager.addBuyOrder(info);
-                log.info("[ORDER] 신규 매수 주문 성공: {}", info);
+                log.info("[NEW-BUY] 요청 성공: {}", info);
             }
         } catch (Exception e) {
-            log.error("[ORDER] 신규 매수 주문 실패: {}", e.getMessage());
+            log.error("[NEW-BUY] 요청 실패: {}", e.getMessage());
         }
     }
 
@@ -62,10 +62,10 @@ public class OrderService {
             CancelOrderResponse response = responseEntity.getBody();
             if (response != null && response.orderId() != null) {
                 orderManager.removeBuyOrder(info.orderId());
-                log.info("[ORDER] 매수 취소 주문 성공: {}", info);
+                log.info("[CANCEL-BUY] 요청 성공: {}", info);
             }
         } catch (Exception e) {
-            log.error("[ORDER] 매수 취소 주문 실패: {}", e.getMessage());
+            log.error("[CANCEL-BUY] 요청 실패: {}", e.getMessage());
         }
     }
 
