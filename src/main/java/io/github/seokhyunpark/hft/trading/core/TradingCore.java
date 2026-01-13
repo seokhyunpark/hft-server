@@ -1,5 +1,7 @@
 package io.github.seokhyunpark.hft.trading.core;
 
+import java.math.BigDecimal;
+
 import org.springframework.stereotype.Component;
 
 import io.github.seokhyunpark.hft.exchange.dto.stream.AccountUpdate;
@@ -8,6 +10,7 @@ import io.github.seokhyunpark.hft.exchange.dto.stream.OrderUpdate;
 import io.github.seokhyunpark.hft.exchange.dto.stream.PartialBookDepth;
 import io.github.seokhyunpark.hft.exchange.listener.MarketEventListener;
 import io.github.seokhyunpark.hft.exchange.listener.UserEventListener;
+import io.github.seokhyunpark.hft.trading.config.TradingProperties;
 import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
 import io.github.seokhyunpark.hft.trading.dto.OrderParams;
 import io.github.seokhyunpark.hft.trading.manager.AssetManager;
@@ -27,6 +30,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     private final OrderManager orderManager;
     private final RateLimitManager rateLimitManager;
     private final OrderService orderService;
+    private final TradingProperties tradingProperties;
 
     // ----------------------------------------------------------------------------------------------------
     // Market Event
@@ -82,12 +86,25 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     // ----------------------------------------------------------------------------------------------------
     @Override
     public void onAccountUpdateReceived(AccountUpdate accountUpdate) {
+        if (accountUpdate == null || accountUpdate.eventType() == null || accountUpdate.balances() == null) {
+            return;
+        }
 
+        if (!accountUpdate.eventType().equals("outboundAccountPosition")) {
+            return;
+        }
+
+        for (AccountUpdate.Balance balanceEntry : accountUpdate.balances()) {
+            if (balanceEntry.asset().equals(tradingProperties.quoteAsset())) {
+                BigDecimal free = new BigDecimal(balanceEntry.free());
+                assetManager.syncQuoteBalance(free);
+                break;
+            }
+        }
     }
 
     @Override
     public void onBalanceUpdateReceived(BalanceUpdate balanceUpdate) {
-
     }
 
     @Override
