@@ -105,6 +105,18 @@ public class TradingCore implements MarketEventListener, UserEventListener {
 
     @Override
     public void onBalanceUpdateReceived(BalanceUpdate balanceUpdate) {
+        if (balanceUpdate == null || balanceUpdate.eventType() == null) {
+            return;
+        }
+
+        if (!balanceUpdate.eventType().equals("balanceUpdate")) {
+            return;
+        }
+
+        if (balanceUpdate.asset().equals(tradingProperties.quoteAsset())) {
+            BigDecimal delta = new BigDecimal(balanceUpdate.balanceDelta());
+            assetManager.addQuoteBalance(delta);
+        }
     }
 
     @Override

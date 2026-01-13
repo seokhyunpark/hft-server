@@ -35,4 +35,13 @@ public class AssetManager {
         BigDecimal balance = quoteBalance.updateAndGet(current -> current.subtract(amount));
         log.debug("[USD-LOCAL] 주문 비용 선차감 (-{}) | 현재 잔고: {}", amount.toPlainString(), balance.toPlainString());
     }
+
+    public void addQuoteBalance(BigDecimal delta) {
+        if (delta == null) {
+            return;
+        }
+
+        BigDecimal balance = quoteBalance.updateAndGet(current -> current.add(delta));
+        log.debug("[USD-SERVER] 자산 변동 적용 ({}) | 현재 잔고: {}", delta, balance);
+    }
 }
