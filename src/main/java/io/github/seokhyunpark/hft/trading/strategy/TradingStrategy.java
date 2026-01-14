@@ -67,7 +67,9 @@ public class TradingStrategy {
     // ----------------------------------------------------------------------------------------------------
     public void updateBestAskPrice(PartialBookDepth depth) {
         if (depth != null && depth.asks() != null && !depth.asks().isEmpty()) {
-            latestBestAskPrice.set(new BigDecimal(depth.asks().getFirst().getFirst()));
+            BigDecimal lowestAskPrice = new BigDecimal(depth.asks().getFirst().getFirst());
+            BigDecimal bestAskPrice = lowestAskPrice.subtract(tradingProperties.priceTickSize());
+            latestBestAskPrice.set(bestAskPrice);
         }
     }
 }
