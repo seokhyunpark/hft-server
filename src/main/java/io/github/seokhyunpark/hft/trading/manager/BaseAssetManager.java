@@ -32,7 +32,7 @@ public class BaseAssetManager {
                     cur.locked().plus(cleanQty, usdValue)
             );
         });
-        log.info("[BASE-ASSET] FREE 증가, LOCKED 감소 (QTY: {} | USD: {})", qty, usdValue);
+        log.info("[BASE-ASSET] FREE 감소, LOCKED 증가 (QTY: {} | USD: {})", qty, usdValue);
     }
 
     public void deductLocked(BigDecimal qty, BigDecimal usdValue) {
@@ -46,10 +46,10 @@ public class BaseAssetManager {
             BigDecimal cleanQty = properties.scaleQty(qty);
             return new PositionSnapshot(
                     cur.free().plus(cleanQty, usdValue),
-                    cur.free().minus(cleanQty, usdValue)
+                    cur.locked().minus(cleanQty, usdValue)
             );
         });
-        log.info("[BASE-ASSET] LOCKED 감소, FREE 증가 (QTY: {} | USD: {})", qty, usdValue);
+        log.info("[BASE-ASSET] FREE 증가, LOCKED 감소 (QTY: {} | USD: {})", qty, usdValue);
     }
 
     public PositionSnapshot getSnapshot() {
