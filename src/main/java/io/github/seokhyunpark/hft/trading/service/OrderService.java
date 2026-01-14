@@ -29,8 +29,8 @@ public class OrderService {
         try {
             ResponseEntity<NewOrderResponse> responseEntity = binanceClient.buyLimitMaker(
                     tradingProperties.symbol(),
-                    params.qty().toPlainString(),
-                    params.price().toPlainString()
+                    tradingProperties.scaleQty(params.qty()).toPlainString(),
+                    tradingProperties.scalePrice(params.price()).toPlainString()
             );
             updateRateLimit(responseEntity);
 
