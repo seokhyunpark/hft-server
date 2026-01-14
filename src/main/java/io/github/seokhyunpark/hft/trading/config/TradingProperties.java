@@ -1,6 +1,7 @@
 package io.github.seokhyunpark.hft.trading.config;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -14,4 +15,12 @@ public record TradingProperties(
         BigDecimal priceTickSize,
         BigDecimal qtyTickSize,
         BigDecimal buyWallThresholdUsd
-) {}
+) {
+    public BigDecimal scaleQty(BigDecimal qty) {
+        return qty.setScale(qtyTickSize.scale(), RoundingMode.DOWN);
+    }
+
+    public BigDecimal scalePrice(BigDecimal price) {
+        return price.setScale(priceTickSize.scale(), RoundingMode.DOWN);
+    }
+}
