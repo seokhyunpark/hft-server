@@ -54,6 +54,9 @@ public class OrderService {
     @Async("buyOrderExecutor")
     public void executeCancelBuyOrder(OrderInfo info) {
         try {
+            if (!orderManager.containsBuyOrder(info.orderId())) {
+                return;
+            }
             ResponseEntity<CancelOrderResponse> responseEntity = binanceClient.cancelOrder(
                     info.symbol(),
                     info.orderId()

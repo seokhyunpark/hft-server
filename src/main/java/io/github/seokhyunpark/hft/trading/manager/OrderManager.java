@@ -68,4 +68,8 @@ public class OrderManager {
                 .min(Comparator.comparingLong(OrderInfo::orderId))
                 .orElse(null);
     }
+
+    public boolean containsBuyOrder(long orderId) {
+        return buyOrders.containsKey(orderId);
+    }
 }
