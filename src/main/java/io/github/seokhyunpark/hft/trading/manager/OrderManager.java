@@ -72,4 +72,29 @@ public class OrderManager {
     public boolean containsBuyOrder(long orderId) {
         return buyOrders.containsKey(orderId);
     }
+
+    // ----------------------------------------------------------------------------------------------------
+    // 매도 주문 관리
+    // ----------------------------------------------------------------------------------------------------
+    public int getSellOrderCount() {
+        return sellOrders.size();
+    }
+
+    public void addSellOrder(OrderInfo orderInfo) {
+        sellOrders.put(orderInfo.orderId(), orderInfo);
+    }
+
+    public void removeSellOrder(long orderId) {
+        sellOrders.remove(orderId);
+    }
+
+    public OrderInfo getHighestPriceSellOrder() {
+        return sellOrders.values().stream()
+                .max(Comparator.comparing(OrderInfo::numericPrice))
+                .orElse(null);
+    }
+
+    public boolean containsSellOrder(long orderId) {
+        return sellOrders.containsKey(orderId);
+    }
 }
