@@ -124,6 +124,28 @@ public class TradingCore implements MarketEventListener, UserEventListener {
 
     @Override
     public void onOrderUpdateReceived(OrderUpdate orderUpdate) {
+        if (orderUpdate == null || !orderUpdate.eventType().equals("executionReport")) {
+            return;
+        }
+        if (orderUpdate.symbol().equals(tradingProperties.symbol())) {
+            switch (orderUpdate.currentExecutionType()) {
+                case "NEW" -> handleNewType(orderUpdate);
+                case "TRADE" -> handleTradeType(orderUpdate);
+                case "CANCELED" -> handleCanceledType(orderUpdate);
+                default -> log.info("[ORDER-UPDATE] 알 수 없는 타입: {}", orderUpdate.currentExecutionType());
+            }
+        }
+    }
+
+    private void handleNewType(OrderUpdate update) {
+
+    }
+
+    private void handleTradeType(OrderUpdate update) {
+
+    }
+
+    private void handleCanceledType(OrderUpdate update) {
 
     }
 }
