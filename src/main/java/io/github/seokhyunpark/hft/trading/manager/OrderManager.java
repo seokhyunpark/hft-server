@@ -60,7 +60,7 @@ public class OrderManager {
     }
 
     public boolean isBuyOrdersFull() {
-        return buyOrders.size() >= BUY_ORDERS_LIMIT;
+        return buyOrders.size() > BUY_ORDERS_LIMIT;
     }
 
     public OrderInfo getOldestBuyOrder() {
