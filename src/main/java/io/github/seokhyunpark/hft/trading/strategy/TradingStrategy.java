@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import io.github.seokhyunpark.hft.exchange.dto.stream.PartialBookDepth;
 import io.github.seokhyunpark.hft.trading.config.TradingProperties;
 import io.github.seokhyunpark.hft.trading.dto.OrderParams;
+import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -71,5 +72,15 @@ public class TradingStrategy {
             BigDecimal bestAskPrice = lowestAskPrice.subtract(tradingProperties.priceTickSize());
             latestBestAskPrice.set(bestAskPrice);
         }
+    }
+
+    public OrderParams calculateSellOrderParams(PositionInfo free) {
+        BigDecimal targetAskPrice = free.getAvgPrice().multiply(tradingProperties.targetMargin());
+        BigDecimal bestAskPrice = targetAskPrice.max(latestBestAskPrice.get());
+
+        BigDecimal price = tradingProperties.scalePrice(bestAskPrice);
+        BigDecimal qty = tradingProperties.scaleQty(free.totalQty());
+
+        return new OrderParams(price, qty);
     }
 }
