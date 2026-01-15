@@ -55,6 +55,7 @@ public class OrderService {
     public void executeCancelBuyOrder(OrderInfo info) {
         try {
             if (!orderManager.containsBuyOrder(info.orderId())) {
+                log.info("[CANCEL-BUY] 없는 주문: {}", info.orderId());
                 return;
             }
             ResponseEntity<CancelOrderResponse> responseEntity = binanceClient.cancelOrder(
@@ -64,11 +65,12 @@ public class OrderService {
 
             CancelOrderResponse response = responseEntity.getBody();
             if (response != null && response.orderId() != null) {
-                orderManager.removeBuyOrder(info.orderId());
                 log.info("[CANCEL-BUY] 요청 성공: {}", info);
             }
         } catch (Exception e) {
             log.error("[CANCEL-BUY] 요청 실패: {}", e.getMessage());
+        } finally {
+            orderManager.removeBuyOrder(info.orderId());
         }
     }
 
