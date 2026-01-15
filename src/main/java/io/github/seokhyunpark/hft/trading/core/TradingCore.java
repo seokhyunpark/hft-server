@@ -58,8 +58,8 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         }
 
         // USD 잔고 확인
-        if (!quoteAssetManager.hasQuoteBalanceFor(buyParams.getAmount())) {
-            log.debug("[REJECT] USD 잔고 부족: [보유: {}, 필요: {}]", quoteAssetManager.getQuoteBalance(), buyParams.getAmount());
+        if (!quoteAssetManager.hasQuoteBalanceFor(buyParams.getUsdValue())) {
+            log.debug("[REJECT] USD 잔고 부족: [보유: {}, 필요: {}]", quoteAssetManager.getQuoteBalance(), buyParams.getUsdValue());
             return;
         }
 
@@ -71,7 +71,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
 
         // 매수 주문 (상태 낙관적 업데이트)
         rateLimitManager.onOrderPlaced();
-        quoteAssetManager.deductQuoteBalance(buyParams.getAmount());
+        quoteAssetManager.deductQuoteBalance(buyParams.getUsdValue());
         orderService.executeBuyOrder(buyParams);
 
         // Buy Orders 개수 관리
