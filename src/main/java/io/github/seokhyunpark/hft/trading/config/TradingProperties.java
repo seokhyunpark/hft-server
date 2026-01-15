@@ -14,7 +14,8 @@ public record TradingProperties(
         BigDecimal minOrderSize,
         BigDecimal priceTickSize,
         BigDecimal qtyTickSize,
-        BigDecimal buyWallThresholdUsd
+        BigDecimal buyWallThresholdUsd,
+        BigDecimal targetMargin
 ) {
     public BigDecimal scaleQty(BigDecimal qty) {
         return qty.setScale(qtyTickSize.scale(), RoundingMode.DOWN);
