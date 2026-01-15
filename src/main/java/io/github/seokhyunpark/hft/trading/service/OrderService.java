@@ -10,6 +10,8 @@ import io.github.seokhyunpark.hft.exchange.dto.rest.NewOrderResponse;
 import io.github.seokhyunpark.hft.trading.config.TradingProperties;
 import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
 import io.github.seokhyunpark.hft.trading.dto.OrderParams;
+import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
+import io.github.seokhyunpark.hft.trading.ledger.AcquiredLedger;
 import io.github.seokhyunpark.hft.trading.manager.OrderManager;
 import io.github.seokhyunpark.hft.trading.manager.RateLimitManager;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class OrderService {
     private final BinanceClient binanceClient;
+    private final AcquiredLedger acquiredLedger;
     private final OrderManager orderManager;
     private final RateLimitManager rateLimitManager;
     private final TradingProperties tradingProperties;
@@ -71,6 +74,58 @@ public class OrderService {
             log.error("[CANCEL-BUY] 요청 실패: {}", e.getMessage());
         } finally {
             orderManager.removeBuyOrder(info.orderId());
+        }
+    }
+
+    @Async("sellOrderExecutor")
+    public void executeSellOrder(OrderParams params, PositionInfo pulledInfo) {
+        try {
+            ResponseEntity<NewOrderResponse> responseEntity = binanceClient.sellLimitMaker(
+                    tradingProperties.symbol(),
+                    tradingProperties.scaleQty(params.qty()).toPlainString(),
+                    tradingProperties.scalePrice(params.price()).toPlainString()
+            );
+            updateRateLimit(responseEntity);
+
+            NewOrderResponse response = responseEntity.getBody();
+            if (response != null && response.orderId() != null) {
+                OrderInfo info = new OrderInfo(
+                        response.orderId(),
+                        response.symbol(),
+                        params.qty().toPlainString(),
+                        params.price().toPlainString(),
+                        response.transactTime()
+                );
+                orderManager.addSellOrder(info);
+                log.info("[NEW-SELL] 요청 성공: {}", info);
+            }
+        } catch (Exception e) {
+            acquiredLedger.restoreAcquired(pulledInfo);
+            log.error("[NEW-SELL] 요청 실패: {}", e.getMessage());
+        }
+    }
+
+    @Async("sellOrderExecutor")
+    public void executeCancelSellOrder(OrderInfo info) {
+        try {
+            if (!orderManager.containsSellOrder(info.orderId())) {
+                log.info("[CANCEL-SELL] 없는 주문: {}", info.orderId());
+                return;
+            }
+            ResponseEntity<CancelOrderResponse> responseEntity = binanceClient.cancelOrder(
+                    info.symbol(),
+                    info.orderId()
+            );
+
+            CancelOrderResponse response = responseEntity.getBody();
+            if (response != null && response.orderId() != null) {
+                orderManager.addCanceledOrder(info);
+                log.info("[CANCEL-SELL] 요청 성공: {}", info);
+            }
+        } catch (Exception e) {
+            log.error("[CANCEL-SELL] 요청 실패: {}", e.getMessage());
+        } finally {
+            orderManager.removeSellOrder(info.orderId());
         }
     }
 
