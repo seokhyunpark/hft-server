@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.stereotype.Component;
 
 import io.github.seokhyunpark.hft.trading.config.TradingProperties;
-import io.github.seokhyunpark.hft.trading.dto.PositionSnapshot;
+import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,43 +16,30 @@ import lombok.extern.slf4j.Slf4j;
 public class BaseAssetManager {
     private final TradingProperties properties;
 
-    private final AtomicReference<PositionSnapshot> state = new AtomicReference<>(new PositionSnapshot());
+    private final AtomicReference<PositionInfo> acquired = new AtomicReference<>(new PositionInfo());
 
-    public void addFree(BigDecimal qty, BigDecimal usdValue) {
+    public void addAcquired(BigDecimal qty, BigDecimal usdValue) {
         BigDecimal cleanQty = properties.scaleQty(qty);
-        state.updateAndGet(cur -> cur.withFree(cur.free().plus(cleanQty, usdValue)));
-        log.info("[BASE-ASSET] FREE 증가 (QTY: {} | USD: {})", qty, usdValue);
+        PositionInfo added = acquired.updateAndGet(cur -> cur.add(cleanQty, usdValue));
+        log.info("[BASE-ASSET] 증가: {}", added);
     }
 
-    public void transferFreeToLocked(BigDecimal qty, BigDecimal usdValue) {
-        state.updateAndGet(cur -> {
-            BigDecimal cleanQty = properties.scaleQty(qty);
-            return new PositionSnapshot(
-                    cur.free().minus(cleanQty, usdValue),
-                    cur.locked().plus(cleanQty, usdValue)
-            );
-        });
-        log.info("[BASE-ASSET] FREE 감소, LOCKED 증가 (QTY: {} | USD: {})", qty, usdValue);
+    public PositionInfo pullAcquired() {
+        PositionInfo pulled = acquired.getAndSet(new PositionInfo());
+        log.info("[BASE-ASSET] 추출 및 초기화: {}", pulled);
+        return pulled;
     }
 
-    public void deductLocked(BigDecimal qty, BigDecimal usdValue) {
-        BigDecimal cleanQty = properties.scaleQty(qty);
-        state.updateAndGet(cur -> cur.withLocked(cur.locked().minus(cleanQty, usdValue)));
-        log.info("[BASE-ASSET] LOCKED 감소 (QTY: {} | USD: {})", qty, usdValue);
+    public void restoreAcquired(PositionInfo info) {
+        PositionInfo restored = acquired.updateAndGet(cur -> cur.add(info.totalQty(), info.totalUsdValue()));
+        log.info("[BASE-ASSET] 복구: {}", restored);
     }
 
-    public void transferLockedToFree(BigDecimal qty, BigDecimal usdValue) {
-        state.updateAndGet(cur -> {
-            BigDecimal cleanQty = properties.scaleQty(qty);
-            return new PositionSnapshot(
-                    cur.free().plus(cleanQty, usdValue),
-                    cur.locked().minus(cleanQty, usdValue)
-            );
-        });
-        log.info("[BASE-ASSET] FREE 증가, LOCKED 감소 (QTY: {} | USD: {})", qty, usdValue);
+    public PositionInfo getAcquired() {
+        return acquired.get();
     }
 
-    public PositionSnapshot getSnapshot() {
-        return state.get();
+    public boolean isSellable() {
+        return acquired.get().totalUsdValue().compareTo(properties.minOrderSize()) >= 0;
     }
 }

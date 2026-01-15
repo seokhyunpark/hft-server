@@ -18,15 +18,7 @@ public record PositionInfo(
         return totalUsdValue.divide(totalQty, RoundingMode.CEILING);
     }
 
-    public PositionInfo plus(BigDecimal qty, BigDecimal usd) {
+    public PositionInfo add(BigDecimal qty, BigDecimal usd) {
         return new PositionInfo(totalQty.add(qty), totalUsdValue.add(usd));
-    }
-
-    public PositionInfo minus(BigDecimal qty, BigDecimal usd) {
-        BigDecimal nextQty = totalQty.subtract(qty);
-        if (nextQty.compareTo(BigDecimal.ZERO) <= 0) {
-            return new PositionInfo();
-        }
-        return new PositionInfo(nextQty, totalUsdValue.subtract(usd));
     }
 }
