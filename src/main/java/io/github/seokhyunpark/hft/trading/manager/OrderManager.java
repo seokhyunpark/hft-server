@@ -97,4 +97,15 @@ public class OrderManager {
     public boolean containsSellOrder(long orderId) {
         return sellOrders.containsKey(orderId);
     }
+
+    // ----------------------------------------------------------------------------------------------------
+    // 취소된 주문 관리
+    // ----------------------------------------------------------------------------------------------------
+    public void addCanceledOrder(OrderInfo orderInfo) {
+        canceledOrders.add(orderInfo);
+    }
+
+    public OrderInfo pollLowestPriceCanceledOrder() {
+        return canceledOrders.pollFirst();
+    }
 }
