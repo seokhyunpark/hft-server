@@ -13,6 +13,8 @@ import io.github.seokhyunpark.hft.exchange.listener.UserEventListener;
 import io.github.seokhyunpark.hft.trading.config.TradingProperties;
 import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
 import io.github.seokhyunpark.hft.trading.dto.OrderParams;
+import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
+import io.github.seokhyunpark.hft.trading.ledger.AcquiredLedger;
 import io.github.seokhyunpark.hft.trading.manager.QuoteAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.OrderManager;
 import io.github.seokhyunpark.hft.trading.manager.RateLimitManager;
@@ -31,6 +33,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     private final RateLimitManager rateLimitManager;
     private final OrderService orderService;
     private final TradingProperties tradingProperties;
+    private final AcquiredLedger acquiredLedger;
 
     // ----------------------------------------------------------------------------------------------------
     // Market Event
@@ -142,7 +145,34 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     }
 
     private void handleTradeType(OrderUpdate update) {
+        switch (update.side()) {
+            case "BUY" -> handleBuyTradeState(update);
+            case "SELL" -> handleSellTradeState(update);
+        }
+    }
 
+    private void handleBuyTradeState(OrderUpdate update) {
+        BigDecimal executedQty = new BigDecimal(update.lastExecutedQty());
+        BigDecimal executedUsdValue = new BigDecimal(update.lastQuoteAssetTransactedQty());
+        acquiredLedger.addAcquired(executedQty, executedUsdValue);
+
+        if (update.currentOrderStatus().equals("FILLED")) {
+            orderManager.removeBuyOrder(update.orderId());
+            rateLimitManager.onOrderFilled();
+        }
+
+        if (acquiredLedger.isSellable()) {
+            PositionInfo pulledInfo = acquiredLedger.pullAcquired();
+            OrderParams sellParams = tradingStrategy.calculateSellOrderParams(pulledInfo);
+            orderService.executeSellOrder(sellParams, pulledInfo);
+        }
+    }
+
+    private void handleSellTradeState(OrderUpdate update) {
+        if (update.currentOrderStatus().equals("FILLED")) {
+            orderManager.removeSellOrder(update.orderId());
+            rateLimitManager.onOrderFilled();
+        }
     }
 
     private void handleCanceledType(OrderUpdate update) {
