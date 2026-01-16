@@ -204,7 +204,21 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         }
     }
 
+    // ----------------------------------------------------------------------------------------------------
+    // ORDER_UPDATE TYPE: CANCELED
+    // ----------------------------------------------------------------------------------------------------
     private void handleCanceledType(OrderUpdate update) {
+        switch (update.side()) {
+            case "BUY" -> handleCanceledBuyState(update);
+            case "SELL" -> handleCanceledSellState(update);
+        }
+    }
 
+    private void handleCanceledBuyState(OrderUpdate update) {
+        orderManager.removeBuyOrder(update.orderId());
+    }
+
+    private void handleCanceledSellState(OrderUpdate update) {
+        orderManager.removeSellOrder(update.orderId());
     }
 }
