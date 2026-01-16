@@ -7,10 +7,9 @@ public record OrderInfo(
         String symbol,
         String qty,
         String price,
-        BigDecimal numericPrice,
-        long updateTime
+        BigDecimal numericPrice
 ) {
-    public OrderInfo(long orderId, String symbol, String qty, String price, long updateTime) {
-        this(orderId, symbol, qty, price, new BigDecimal(price), updateTime);
+    public OrderInfo(long orderId, String symbol, String qty, String price) {
+        this(orderId, symbol, qty, price, new BigDecimal(price));
     }
 }

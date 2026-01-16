@@ -43,8 +43,7 @@ public class OrderService {
                         response.orderId(),
                         response.symbol(),
                         params.qty().toPlainString(),
-                        params.price().toPlainString(),
-                        response.transactTime()
+                        params.price().toPlainString()
                 );
                 orderManager.addBuyOrder(info);
                 log.info("[NEW-BUY] 요청 성공: {}", info.orderId());
@@ -93,8 +92,7 @@ public class OrderService {
                         response.orderId(),
                         response.symbol(),
                         params.qty().toPlainString(),
-                        params.price().toPlainString(),
-                        response.transactTime()
+                        params.price().toPlainString()
                 );
                 orderManager.addSellOrder(info);
                 log.info("[NEW-SELL] 요청 성공: {}", info.orderId());
