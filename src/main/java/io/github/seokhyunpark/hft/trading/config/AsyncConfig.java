@@ -16,7 +16,7 @@ public class AsyncConfig {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(10);
         executor.setMaxPoolSize(20);
-        executor.setQueueCapacity(30);
+        executor.setQueueCapacity(0);
         executor.setThreadNamePrefix("buyOrderExecutor-");
         executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
@@ -28,7 +28,7 @@ public class AsyncConfig {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(10);
         executor.setMaxPoolSize(20);
-        executor.setQueueCapacity(30);
+        executor.setQueueCapacity(0);
         executor.setThreadNamePrefix("sellOrderExecutor-");
         executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
