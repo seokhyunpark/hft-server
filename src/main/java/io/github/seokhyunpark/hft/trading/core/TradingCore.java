@@ -144,14 +144,17 @@ public class TradingCore implements MarketEventListener, UserEventListener {
 
     }
 
+    // ----------------------------------------------------------------------------------------------------
+    // ORDER_UPDATE TYPE: TRADE
+    // ----------------------------------------------------------------------------------------------------
     private void handleTradeType(OrderUpdate update) {
         switch (update.side()) {
-            case "BUY" -> handleBuyTradeState(update);
-            case "SELL" -> handleSellTradeState(update);
+            case "BUY" -> handleTradeBuyState(update);
+            case "SELL" -> handleTradeSellState(update);
         }
     }
 
-    private void handleBuyTradeState(OrderUpdate update) {
+    private void handleTradeBuyState(OrderUpdate update) {
         BigDecimal executedQty = new BigDecimal(update.lastExecutedQty());
         BigDecimal executedUsdValue = new BigDecimal(update.lastQuoteAssetTransactedQty());
         acquiredLedger.addAcquired(executedQty, executedUsdValue);
@@ -168,7 +171,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         }
     }
 
-    private void handleSellTradeState(OrderUpdate update) {
+    private void handleTradeSellState(OrderUpdate update) {
         if (update.currentOrderStatus().equals("FILLED")) {
             orderManager.removeSellOrder(update.orderId());
             rateLimitManager.onOrderFilled();
