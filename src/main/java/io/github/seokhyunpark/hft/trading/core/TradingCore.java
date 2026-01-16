@@ -177,7 +177,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     }
 
     private void logNewBuyState(OrderUpdate update) {
-        log.info("🟢 [BUY] 신규 매수 주문 | 가격: {}  | 수량: {} | 주문번호: {}",
+        log.info("🟢 [NEW-BUY] 신규 매수 주문 | 가격: {}  | 수량: {} | 주문번호: {}",
                 tradingProperties.scalePrice(new BigDecimal(update.orderPrice())),
                 tradingProperties.scaleQty(new BigDecimal(update.orderQty())),
                 update.orderId()
@@ -185,7 +185,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     }
 
     private void logNewSellState(OrderUpdate update) {
-        log.info("🔴 [SELL] 신규 매도 주문 | 가격: {} | 수량: {} | 주문번호: {}",
+        log.info("🔴 [NEW-SELL] 신규 매도 주문 | 가격: {} | 수량: {} | 주문번호: {}",
                 tradingProperties.scalePrice(new BigDecimal(update.orderPrice())),
                 tradingProperties.scaleQty(new BigDecimal(update.orderQty())),
                 update.orderId()
@@ -233,7 +233,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     }
 
     private void logTradeBuyState(OrderUpdate update) {
-        log.info("🟩 [BUY] 매수 주문 체결 | 가격: {}  | 수량: {} | 주문번호: {}",
+        log.info("🟩 [TRADE-BUY] 매수 주문 체결 | 가격: {}  | 수량: {} | 주문번호: {}",
                 tradingProperties.scalePrice(new BigDecimal(update.lastExecutedPrice())),
                 tradingProperties.scaleQty(new BigDecimal(update.lastExecutedQty())),
                 update.orderId()
@@ -241,7 +241,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     }
 
     private void logTradeSellState(OrderUpdate update) {
-        log.info("🟥 [SELL] 매도 주문 체결 | 가격: {} | 수량: {} | 주문번호: {}",
+        log.info("🟥 [TRADE-SELL] 매도 주문 체결 | 가격: {} | 수량: {} | 주문번호: {}",
                 tradingProperties.scalePrice(new BigDecimal(update.lastExecutedPrice())),
                 tradingProperties.scaleQty(new BigDecimal(update.lastExecutedQty())),
                 update.orderId()
@@ -273,10 +273,10 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     }
 
     private void logCanceledBuyState(OrderUpdate update) {
-        log.info("🟧 [BUY] 매수 주문 취소 | 주문번호: {}", update.orderId());
+        log.info("🟧 [CANCELED-BUY] 매수 주문 취소 | 주문번호: {}", update.orderId());
     }
 
     private void logCanceledSellState(OrderUpdate update) {
-        log.info("🟧 [SELL] 매도 주문 취소 | 주문번호: {}", update.orderId());
+        log.info("🟧 [CANCELED-SELL] 매도 주문 취소 | 주문번호: {}", update.orderId());
     }
 }
