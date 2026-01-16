@@ -140,8 +140,34 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         }
     }
 
+    // ----------------------------------------------------------------------------------------------------
+    // ORDER_UPDATE TYPE: NEW
+    // ----------------------------------------------------------------------------------------------------
     private void handleNewType(OrderUpdate update) {
+        switch (update.side()) {
+            case "BUY" -> handleNewBuyState(update);
+            case "SELL" -> handleNewSellState(update);
+        }
+    }
 
+    private void handleNewBuyState(OrderUpdate update) {
+        OrderInfo info = new OrderInfo(
+                update.orderId(),
+                update.symbol(),
+                update.orderQty(),
+                update.orderPrice()
+        );
+        orderManager.addBuyOrder(info);
+    }
+
+    private void handleNewSellState(OrderUpdate update) {
+        OrderInfo info = new OrderInfo(
+                update.orderId(),
+                update.symbol(),
+                update.orderQty(),
+                update.orderPrice()
+        );
+        orderManager.addSellOrder(info);
     }
 
     // ----------------------------------------------------------------------------------------------------
