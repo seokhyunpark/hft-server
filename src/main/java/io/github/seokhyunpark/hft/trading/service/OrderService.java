@@ -46,10 +46,10 @@ public class OrderService {
                         params.price().toPlainString()
                 );
                 orderManager.addBuyOrder(info);
-                log.info("[NEW-BUY] 요청 성공: {}", info.orderId());
+                log.debug("[NEW-BUY] 신규 매수 주문 요청 성공 | 주문번호: {}", info.orderId());
             }
         } catch (Exception e) {
-            log.error("[NEW-BUY] 요청 실패: {}", e.getMessage());
+            log.error("[NEW-BUY] 신규 매수 주문 요청 실패 | 에러 메시지: {}", e.getMessage());
         }
     }
 
@@ -57,7 +57,7 @@ public class OrderService {
     public void executeCancelBuyOrder(OrderInfo info) {
         try {
             if (!orderManager.containsBuyOrder(info.orderId())) {
-                log.info("[CANCEL-BUY] 알 수 없는 주문: {}", info.orderId());
+                log.debug("[CANCEL-BUY] 이미 체결 또는 취소된 매수 주문 | 주문번호: {}", info.orderId());
                 return;
             }
             ResponseEntity<CancelOrderResponse> responseEntity = binanceClient.cancelOrder(
@@ -67,10 +67,10 @@ public class OrderService {
 
             CancelOrderResponse response = responseEntity.getBody();
             if (response != null && response.orderId() != null) {
-                log.info("[CANCEL-BUY] 요청 성공: {}", info.orderId());
+                log.debug("[CANCEL-BUY] 매수 주문 취소 요청 성공 | 주문번호: {}", info.orderId());
             }
         } catch (Exception e) {
-            log.error("[CANCEL-BUY] 요청 실패: {}", e.getMessage());
+            log.error("[CANCEL-BUY] 매수 주문 취소 요청 실패 | 주문번호: : {}", info.orderId());
         } finally {
             orderManager.removeBuyOrder(info.orderId());
         }
@@ -95,11 +95,11 @@ public class OrderService {
                         params.price().toPlainString()
                 );
                 orderManager.addSellOrder(info);
-                log.info("[NEW-SELL] 요청 성공: {}", info.orderId());
+                log.debug("[NEW-SELL] 신규 매도 주문 요청 성공 | 주문번호: {}", info.orderId());
             }
         } catch (Exception e) {
             acquiredLedger.restoreAcquired(pulledInfo);
-            log.error("[NEW-SELL] 요청 실패: {}", e.getMessage());
+            log.error("[NEW-SELL] 신규 매도 주문 요청 실패 | 에러 메시지: {}", e.getMessage());
         }
     }
 
@@ -107,7 +107,7 @@ public class OrderService {
     public void executeCancelSellOrder(OrderInfo info) {
         try {
             if (!orderManager.containsSellOrder(info.orderId())) {
-                log.info("[CANCEL-SELL] 알 수 없는 주문: {}", info.orderId());
+                log.debug("[CANCEL-SELL] 이미 체결 또는 취소된 매도 주문 | 주문번호: {}", info.orderId());
                 return;
             }
             ResponseEntity<CancelOrderResponse> responseEntity = binanceClient.cancelOrder(
@@ -118,10 +118,10 @@ public class OrderService {
             CancelOrderResponse response = responseEntity.getBody();
             if (response != null && response.orderId() != null) {
                 orderManager.addCanceledOrder(info);
-                log.info("[CANCEL-SELL] 요청 성공: {}", info.orderId());
+                log.debug("[CANCEL-SELL] 매도 주문 취소 요청 성공 | 주문번호: {}", info.orderId());
             }
         } catch (Exception e) {
-            log.error("[CANCEL-SELL] 요청 실패: {}", e.getMessage());
+            log.error("[CANCEL-SELL] 매도 주문 취소 요청 실패 | 주문번호: : {}", info.orderId());
         } finally {
             orderManager.removeSellOrder(info.orderId());
         }
