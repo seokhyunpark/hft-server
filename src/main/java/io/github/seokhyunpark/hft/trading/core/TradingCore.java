@@ -47,6 +47,15 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         // 매도 1호가 가격 업데이트
         tradingStrategy.updateBestAskPrice(depth);
 
+        // Buy Orders 개수 관리
+        if (orderManager.isBuyOrdersFull()) {
+            OrderInfo info = orderManager.getOldestBuyOrder();
+            if (info != null) {
+                orderService.executeCancelBuyOrder(info);
+                log.debug("[REJECT] Buy Orders 개수 최대: {}", orderManager.getBuyOrderCount());
+            }
+        }
+
         // 중복된 가격 확인
         OrderParams buyParams = tradingStrategy.calculateBuyOrderParams(depth);
         if (buyParams.isInvalid() || orderManager.hasBuyOrderAt(buyParams.price())) {
@@ -76,15 +85,6 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         rateLimitManager.onOrderPlaced();
         quoteAssetManager.deductQuoteBalance(buyParams.getUsdValue());
         orderService.executeBuyOrder(buyParams);
-
-        // Buy Orders 개수 관리
-        if (orderManager.isBuyOrdersFull()) {
-            OrderInfo info = orderManager.getOldestBuyOrder();
-            if (info != null) {
-                orderService.executeCancelBuyOrder(info);
-                log.debug("[REJECT] Buy Orders 개수 최대: {}", orderManager.getBuyOrderCount());
-            }
-        }
     }
 
     // ----------------------------------------------------------------------------------------------------
