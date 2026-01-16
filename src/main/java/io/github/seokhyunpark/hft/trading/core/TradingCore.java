@@ -145,8 +145,14 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     // ----------------------------------------------------------------------------------------------------
     private void handleNewType(OrderUpdate update) {
         switch (update.side()) {
-            case "BUY" -> handleNewBuyState(update);
-            case "SELL" -> handleNewSellState(update);
+            case "BUY" -> {
+                handleNewBuyState(update);
+                logNewBuyState(update);
+            }
+            case "SELL" -> {
+                handleNewSellState(update);
+                logNewSellState(update);
+            }
         }
     }
 
@@ -168,6 +174,22 @@ public class TradingCore implements MarketEventListener, UserEventListener {
                 update.orderPrice()
         );
         orderManager.addSellOrder(info);
+    }
+
+    private void logNewBuyState(OrderUpdate update) {
+        log.info("🟢 [BUY] 신규 매수 주문 | 가격: {}  | 수량: {} | 주문번호: {}",
+                tradingProperties.scalePrice(new BigDecimal(update.orderPrice())),
+                tradingProperties.scaleQty(new BigDecimal(update.orderQty())),
+                update.orderId()
+        );
+    }
+
+    private void logNewSellState(OrderUpdate update) {
+        log.info("🔴 [SELL] 신규 매도 주문 | 가격: {} | 수량: {} | 주문번호: {}",
+                tradingProperties.scalePrice(new BigDecimal(update.orderPrice())),
+                tradingProperties.scaleQty(new BigDecimal(update.orderQty())),
+                update.orderId()
+        );
     }
 
     // ----------------------------------------------------------------------------------------------------
