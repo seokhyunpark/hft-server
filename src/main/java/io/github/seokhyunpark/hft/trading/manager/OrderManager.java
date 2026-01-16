@@ -1,8 +1,11 @@
 package io.github.seokhyunpark.hft.trading.manager;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 
@@ -28,6 +31,15 @@ public class OrderManager {
     private final Map<Long, OrderInfo> sellOrders = new ConcurrentHashMap<>();
     private final ConcurrentSkipListSet<OrderInfo> canceledOrders = new ConcurrentSkipListSet<>(canceledOrderComparator);
 
+    private final Set<Long> closedOrders = Collections.synchronizedSet(
+            Collections.newSetFromMap(new LinkedHashMap<Long, Boolean>(1000, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<Long, Boolean> eldest) {
+                    return size() > 1000;
+                }
+            })
+    );
+
     // ----------------------------------------------------------------------------------------------------
     // 공통 주문 관리
     // ----------------------------------------------------------------------------------------------------
@@ -47,10 +59,15 @@ public class OrderManager {
     }
 
     public void addBuyOrder(OrderInfo orderInfo) {
+        if (closedOrders.contains(orderInfo.orderId())) {
+            log.debug("[CLOSED-BUY] 이미 종료된 매수 주문 재등록 방지 | 주문번호: {}", orderInfo.orderId());
+            return;
+        }
         buyOrders.put(orderInfo.orderId(), orderInfo);
     }
 
     public void removeBuyOrder(long orderId) {
+        closedOrders.add(orderId);
         buyOrders.remove(orderId);
     }
 
@@ -81,10 +98,15 @@ public class OrderManager {
     }
 
     public void addSellOrder(OrderInfo orderInfo) {
+        if (closedOrders.contains(orderInfo.orderId())) {
+            log.debug("[CLOSED-SELL] 이미 종료된 매도 주문 재등록 방지 | 주문번호: {}", orderInfo.orderId());
+            return;
+        }
         sellOrders.put(orderInfo.orderId(), orderInfo);
     }
 
     public void removeSellOrder(long orderId) {
+        closedOrders.add(orderId);
         sellOrders.remove(orderId);
     }
 
