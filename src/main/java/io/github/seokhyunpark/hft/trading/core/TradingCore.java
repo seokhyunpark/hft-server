@@ -253,8 +253,14 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     // ----------------------------------------------------------------------------------------------------
     private void handleCanceledType(OrderUpdate update) {
         switch (update.side()) {
-            case "BUY" -> handleCanceledBuyState(update);
-            case "SELL" -> handleCanceledSellState(update);
+            case "BUY" -> {
+                handleCanceledBuyState(update);
+                logCanceledBuyState(update);
+            }
+            case "SELL" -> {
+                handleCanceledSellState(update);
+                logCanceledSellState(update);
+            }
         }
     }
 
@@ -264,5 +270,13 @@ public class TradingCore implements MarketEventListener, UserEventListener {
 
     private void handleCanceledSellState(OrderUpdate update) {
         orderManager.removeSellOrder(update.orderId());
+    }
+
+    private void logCanceledBuyState(OrderUpdate update) {
+        log.info("🟧 [BUY] 매수 주문 취소 | 주문번호: {}", update.orderId());
+    }
+
+    private void logCanceledSellState(OrderUpdate update) {
+        log.info("🟧 [SELL] 매도 주문 취소 | 주문번호: {}", update.orderId());
     }
 }
