@@ -5,9 +5,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.PriorityBlockingQueue;
 
 import org.springframework.stereotype.Component;
 
@@ -23,13 +24,11 @@ public class OrderManager {
     private static final int OPEN_ORDERS_MARGIN = 10;
     private static final int BUY_ORDERS_LIMIT = 3;
 
-    private static final Comparator<OrderInfo> canceledOrderComparator = Comparator
-            .comparing(OrderInfo::numericPrice)
-            .thenComparingLong(OrderInfo::orderId);
-
     private final Map<Long, OrderInfo> buyOrders = new ConcurrentHashMap<>();
     private final Map<Long, OrderInfo> sellOrders = new ConcurrentHashMap<>();
-    private final ConcurrentSkipListSet<OrderInfo> canceledOrders = new ConcurrentSkipListSet<>(canceledOrderComparator);
+    private final Queue<OrderInfo> canceledOrders = new PriorityBlockingQueue<>(
+            2000, Comparator.comparing(OrderInfo::numericPrice)
+    );
 
     private final Set<Long> closedOrders = Collections.synchronizedSet(
             Collections.newSetFromMap(new LinkedHashMap<Long, Boolean>(1000, 0.75f, true) {
@@ -128,6 +127,10 @@ public class OrderManager {
     }
 
     public OrderInfo pollLowestPriceCanceledOrder() {
-        return canceledOrders.pollFirst();
+        return canceledOrders.poll();
+    }
+
+    public boolean hasCanceledOrders() {
+        return !canceledOrders.isEmpty();
     }
 }
