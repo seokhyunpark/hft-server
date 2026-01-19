@@ -35,3 +35,4 @@ hft:
       buy-orders-limit: "1"
       buy-wall-threshold-usd: "1000"
       target-margin: "1.0001"
+      price-conflict-threshold: "0.00001"
