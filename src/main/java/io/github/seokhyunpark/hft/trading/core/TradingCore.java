@@ -52,32 +52,26 @@ public class TradingCore implements MarketEventListener, UserEventListener {
             OrderInfo info = orderManager.getOldestBuyOrder();
             if (info != null) {
                 orderService.executeCancelBuyOrder(info);
-                log.debug("[REJECT] Buy Orders 개수 최대: {}", orderManager.getBuyOrderCount());
             }
         }
 
-        // 중복된 가격 확인
         OrderParams buyParams = tradingStrategy.calculateBuyOrderParams(depth);
         if (buyParams.isInvalid() || orderManager.hasBuyOrderAt(buyParams.price())) {
-            log.debug("[REJECT] 중복된 가격: {}", buyParams.price());
             return;
         }
 
         // Rate Limit 확인
         if (!rateLimitManager.hasRateLimitCapacity()) {
-            log.debug("[REJECT] 요청 수 제한 최대: {}", rateLimitManager.getOrderCount());
             return;
         }
 
         // USD 잔고 확인
         if (!quoteAssetManager.hasQuoteBalanceFor(buyParams.getUsdValue())) {
-            log.debug("[REJECT] USD 잔고 부족: [보유: {}, 필요: {}]", quoteAssetManager.getQuoteBalance(), buyParams.getUsdValue());
             return;
         }
 
         // Open Orders 개수 확인
         if (!orderManager.hasOpenOrderCapacity()) {
-            log.debug("[REJECT] Open Orders 개수 최대: {}", orderManager.getOpenOrdersCount());
             return;
         }
 
