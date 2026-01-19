@@ -11,7 +11,7 @@ logging:
 
 hft:
   stream:
-    market-uri: wss://data-stream.binance.vision:443/ws/btcfdusd@depth20@100ms
+    market-uri: wss://data-stream.binance.vision:443/ws/btcfdusd@depth5@100ms
     user-uri: wss://ws-api.binance.com:443/ws-api/v3
 
   exchange:
@@ -35,4 +35,4 @@ hft:
       buy-orders-limit: "1"
       buy-wall-threshold-usd: "1000"
       target-margin: "1.0001"
-      price-conflict-threshold: "0.00001"
+      price-conflict-threshold: "0.000005"
