@@ -61,6 +61,8 @@ public class OrderService {
                 log.debug("[CANCEL-BUY] 이미 체결 또는 취소된 매수 주문 | 주문번호: {}", info.orderId());
                 return;
             }
+            orderManager.removeBuyOrder(info.orderId());
+
             ResponseEntity<CancelOrderResponse> responseEntity = binanceClient.cancelOrder(
                     info.symbol(),
                     info.orderId()
@@ -72,8 +74,6 @@ public class OrderService {
             }
         } catch (Exception e) {
             log.error("[CANCEL-BUY] 매수 주문 취소 요청 실패 | 주문번호: : {}", info.orderId());
-        } finally {
-            orderManager.removeBuyOrder(info.orderId());
         }
     }
 
@@ -114,6 +114,8 @@ public class OrderService {
                 log.debug("[CANCEL-SELL] 이미 체결 또는 취소된 매도 주문 | 주문번호: {}", info.orderId());
                 return;
             }
+            orderManager.removeSellOrder(info.orderId());
+
             ResponseEntity<CancelOrderResponse> responseEntity = binanceClient.cancelOrder(
                     info.symbol(),
                     info.orderId()
@@ -126,8 +128,6 @@ public class OrderService {
             }
         } catch (Exception e) {
             log.error("[CANCEL-SELL] 매도 주문 취소 요청 실패 | 주문번호: : {}", info.orderId());
-        } finally {
-            orderManager.removeSellOrder(info.orderId());
         }
     }
 
