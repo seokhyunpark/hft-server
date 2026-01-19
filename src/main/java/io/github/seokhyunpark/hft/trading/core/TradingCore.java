@@ -56,7 +56,15 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         }
 
         OrderParams buyParams = tradingStrategy.calculateBuyOrderParams(depth);
-        if (buyParams.isInvalid() || orderManager.hasBuyOrderAt(buyParams.price())) {
+        OrderInfo conflictingBuyOrder = orderManager.findConflictingBuyOrder(buyParams.price());
+        if (conflictingBuyOrder != null) {
+            orderService.executeCancelBuyOrder(conflictingBuyOrder);
+        }
+
+        // 중복된 가격 확인
+        if (buyParams.isInvalid()
+                || orderManager.hasBuyOrderAt(buyParams.price())
+                || orderManager.hasConflictingWithHoldings(buyParams.price())) {
             return;
         }
 

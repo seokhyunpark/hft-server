@@ -49,6 +49,30 @@ public class OrderManager {
         return buyOrders.size() + sellOrders.size() < tradingProperties.risk().maxOpenOrders();
     }
 
+    public OrderInfo findConflictingBuyOrder(BigDecimal newPrice) {
+        for (OrderInfo info : buyOrders.values()) {
+            if (isConflicting(info.numericPrice(), newPrice)) {
+                return info;
+            }
+        }
+        return null;
+    }
+
+    public boolean hasConflictingWithHoldings(BigDecimal newPrice) {
+        for (OrderInfo info : sellOrders.values()) {
+            if (isConflicting(info.avgBuyPrice(), newPrice)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isConflicting(BigDecimal existingPrice, BigDecimal newPrice) {
+        BigDecimal diff = existingPrice.subtract(newPrice).abs();
+        BigDecimal limit = existingPrice.multiply(tradingProperties.risk().priceConflictThreshold());
+        return diff.compareTo(limit) < 0;
+    }
+
     // ----------------------------------------------------------------------------------------------------
     // 매수 주문 관리
     // ----------------------------------------------------------------------------------------------------
