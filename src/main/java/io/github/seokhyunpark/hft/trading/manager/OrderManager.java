@@ -20,8 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 public class OrderManager {
-    private static final int MAX_OPEN_ORDERS = 200;
-    private static final int OPEN_ORDERS_MARGIN = 10;
+    private static final int MAX_OPEN_ORDERS = 190;
     private static final int BUY_ORDERS_LIMIT = 1;
 
     private final Map<Long, OrderInfo> buyOrders = new ConcurrentHashMap<>();
@@ -47,7 +46,7 @@ public class OrderManager {
     }
 
     public boolean hasOpenOrderCapacity() {
-        return buyOrders.size() + sellOrders.size() < MAX_OPEN_ORDERS - OPEN_ORDERS_MARGIN;
+        return buyOrders.size() + sellOrders.size() < MAX_OPEN_ORDERS;
     }
 
     // ----------------------------------------------------------------------------------------------------
