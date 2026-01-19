@@ -20,8 +20,15 @@ public record TradingProperties(
             int maxOpenOrders,
             int buyOrdersLimit,
             BigDecimal buyWallThresholdUsd,
-            BigDecimal targetMargin
+            BigDecimal targetMargin,
+            BigDecimal priceProximityThreshold
     ) {}
+
+    private static final int SCALE = 10;
+
+    public BigDecimal divide(BigDecimal numerator, BigDecimal denominator) {
+        return numerator.divide(denominator, SCALE, RoundingMode.HALF_UP);
+    }
 
     public BigDecimal scaleQty(BigDecimal qty) {
         return qty.setScale(qtyTickSize.scale(), RoundingMode.DOWN);

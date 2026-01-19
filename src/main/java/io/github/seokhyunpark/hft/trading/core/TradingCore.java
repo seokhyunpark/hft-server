@@ -157,21 +157,38 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     }
 
     private void handleNewBuyState(OrderUpdate update) {
+        if (orderManager.containsBuyOrder(update.orderId())) {
+            return;
+        }
+
         OrderInfo info = new OrderInfo(
                 update.orderId(),
                 update.symbol(),
                 update.orderQty(),
-                update.orderPrice()
+                update.orderPrice(),
+                null
         );
         orderManager.addBuyOrder(info);
     }
 
     private void handleNewSellState(OrderUpdate update) {
+        if (orderManager.containsSellOrder(update.orderId())) {
+            return;
+        }
+
+        BigDecimal estimatedAvgBuyPrice = tradingProperties.scalePrice(
+                tradingProperties.divide(
+                        new BigDecimal(update.orderPrice()),
+                        tradingProperties.risk().targetMargin()
+                )
+        );
+
         OrderInfo info = new OrderInfo(
                 update.orderId(),
                 update.symbol(),
                 update.orderQty(),
-                update.orderPrice()
+                update.orderPrice(),
+                estimatedAvgBuyPrice
         );
         orderManager.addSellOrder(info);
     }
