@@ -29,5 +29,9 @@ hft:
     min-order-size: "5"
     price-tick-size: "0.01"
     qty-tick-size: "0.00001"
-    buy-wall-threshold-usd: "1000"
-    target-margin: "1.0001"
+
+    risk:
+      max-open-orders: "190"
+      buy-orders-limit: "1"
+      buy-wall-threshold-usd: "1000"
+      target-margin: "1.0001"

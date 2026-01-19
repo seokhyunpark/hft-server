@@ -48,7 +48,7 @@ public class TradingStrategy {
         BigDecimal qty = new BigDecimal(bid.getLast());
         BigDecimal usd = price.multiply(qty);
 
-        return usd.compareTo(tradingProperties.buyWallThresholdUsd()) >= 0;
+        return usd.compareTo(tradingProperties.risk().buyWallThresholdUsd()) >= 0;
     }
 
     private BigDecimal applyPriceOffset(List<String> bid) {
@@ -75,7 +75,7 @@ public class TradingStrategy {
     }
 
     public OrderParams calculateSellOrderParams(PositionInfo info) {
-        BigDecimal targetAskPrice = info.getAvgPrice().multiply(tradingProperties.targetMargin());
+        BigDecimal targetAskPrice = info.getAvgPrice().multiply(tradingProperties.risk().targetMargin());
         BigDecimal bestAskPrice = targetAskPrice.max(latestBestAskPrice.get());
 
         BigDecimal price = tradingProperties.scalePrice(bestAskPrice);

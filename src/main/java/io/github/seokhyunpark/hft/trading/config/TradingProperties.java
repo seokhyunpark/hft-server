@@ -14,9 +14,15 @@ public record TradingProperties(
         BigDecimal minOrderSize,
         BigDecimal priceTickSize,
         BigDecimal qtyTickSize,
-        BigDecimal buyWallThresholdUsd,
-        BigDecimal targetMargin
+        Risk risk
 ) {
+    public record Risk(
+            int maxOpenOrders,
+            int buyOrdersLimit,
+            BigDecimal buyWallThresholdUsd,
+            BigDecimal targetMargin
+    ) {}
+
     public BigDecimal scaleQty(BigDecimal qty) {
         return qty.setScale(qtyTickSize.scale(), RoundingMode.DOWN);
     }

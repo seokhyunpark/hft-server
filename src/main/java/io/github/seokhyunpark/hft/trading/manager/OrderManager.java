@@ -12,6 +12,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 
 import org.springframework.stereotype.Component;
 
+import io.github.seokhyunpark.hft.trading.config.TradingProperties;
 import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,8 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 public class OrderManager {
-    private static final int MAX_OPEN_ORDERS = 190;
-    private static final int BUY_ORDERS_LIMIT = 1;
+    private final TradingProperties tradingProperties;
 
     private final Map<Long, OrderInfo> buyOrders = new ConcurrentHashMap<>();
     private final Map<Long, OrderInfo> sellOrders = new ConcurrentHashMap<>();
@@ -46,7 +46,7 @@ public class OrderManager {
     }
 
     public boolean hasOpenOrderCapacity() {
-        return buyOrders.size() + sellOrders.size() < MAX_OPEN_ORDERS;
+        return buyOrders.size() + sellOrders.size() < tradingProperties.risk().maxOpenOrders();
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -75,7 +75,7 @@ public class OrderManager {
     }
 
     public boolean isBuyOrdersFull() {
-        return buyOrders.size() > BUY_ORDERS_LIMIT;
+        return buyOrders.size() > tradingProperties.risk().buyOrdersLimit();
     }
 
     public OrderInfo getOldestBuyOrder() {
