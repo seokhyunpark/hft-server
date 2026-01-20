@@ -30,7 +30,7 @@ public class OrderManager {
             2000, Comparator.comparing(OrderInfo::numericPrice)
     );
 
-    private final Set<Long> closedOrders = Collections.synchronizedSet(
+    private final Set<Long> recentlyClosedOrders = Collections.synchronizedSet(
             Collections.newSetFromMap(new LinkedHashMap<>(1000, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(Map.Entry<Long, Boolean> eldest) {
@@ -40,50 +40,21 @@ public class OrderManager {
     );
 
     // ----------------------------------------------------------------------------------------------------
-    // 공통 주문 관리
+    // 전체 주문 상태 (Global State)
     // ----------------------------------------------------------------------------------------------------
     public boolean hasOpenOrderCapacity() {
         return buyOrders.size() + sellOrders.size() < tradingProperties.risk().maxOpenOrders();
     }
 
-    public OrderInfo findConflictingBuyOrder(BigDecimal newPrice) {
-        for (OrderInfo info : buyOrders.values()) {
-            if (isConflicting(info.numericPrice(), newPrice)) {
-                return info;
-            }
-        }
-        return null;
-    }
-
-    public boolean hasConflictingWithHoldings(BigDecimal newPrice) {
-        for (OrderInfo info : sellOrders.values()) {
-            if (isConflicting(info.avgBuyPrice(), newPrice)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isConflicting(BigDecimal existingPrice, BigDecimal newPrice) {
-        BigDecimal diff = existingPrice.subtract(newPrice).abs();
-        BigDecimal limit = existingPrice.multiply(tradingProperties.risk().priceConflictToleranceRate());
-        return diff.compareTo(limit) < 0;
-    }
-
     // ----------------------------------------------------------------------------------------------------
-    // 매수 주문 관리
+    // 매수 주문 관리 (Buy Orders)
     // ----------------------------------------------------------------------------------------------------
     public void addBuyOrder(OrderInfo orderInfo) {
-        if (closedOrders.contains(orderInfo.orderId())) {
-            log.debug("[CLOSED-BUY] 이미 종료된 매수 주문 재등록 방지 | 주문번호: {}", orderInfo.orderId());
-            return;
-        }
         buyOrders.put(orderInfo.orderId(), orderInfo);
     }
 
-    public void removeBuyOrder(long orderId) {
-        closedOrders.add(orderId);
-        buyOrders.remove(orderId);
+    public boolean containsBuyOrder(long orderId) {
+        return buyOrders.containsKey(orderId);
     }
 
     public boolean hasBuyOrderAt(BigDecimal price) {
@@ -101,30 +72,16 @@ public class OrderManager {
                 .orElse(null);
     }
 
-    public boolean containsBuyOrder(long orderId) {
-        return buyOrders.containsKey(orderId);
+    public void removeBuyOrder(long orderId) {
+        recentlyClosedOrders.add(orderId);
+        buyOrders.remove(orderId);
     }
 
     // ----------------------------------------------------------------------------------------------------
-    // 매도 주문 관리
+    // 매도 주문 관리 (Sell Orders)
     // ----------------------------------------------------------------------------------------------------
     public void addSellOrder(OrderInfo orderInfo) {
-        if (closedOrders.contains(orderInfo.orderId())) {
-            log.debug("[CLOSED-SELL] 이미 종료된 매도 주문 재등록 방지 | 주문번호: {}", orderInfo.orderId());
-            return;
-        }
         sellOrders.put(orderInfo.orderId(), orderInfo);
-    }
-
-    public void removeSellOrder(long orderId) {
-        closedOrders.add(orderId);
-        sellOrders.remove(orderId);
-    }
-
-    public OrderInfo getHighestPriceSellOrder() {
-        return sellOrders.values().stream()
-                .max(Comparator.comparing(OrderInfo::numericPrice))
-                .orElse(null);
     }
 
     public boolean containsSellOrder(long orderId) {
@@ -139,18 +96,56 @@ public class OrderManager {
         return sellOrders.size() < tradingProperties.risk().minSellOrders();
     }
 
+    public OrderInfo getHighestPriceSellOrder() {
+        return sellOrders.values().stream()
+                .max(Comparator.comparing(OrderInfo::numericPrice))
+                .orElse(null);
+    }
+
+    public void removeSellOrder(long orderId) {
+        recentlyClosedOrders.add(orderId);
+        sellOrders.remove(orderId);
+    }
+
     // ----------------------------------------------------------------------------------------------------
-    // 취소된 주문 관리
+    // 취소된 주문 관리 (Canceled Orders)
     // ----------------------------------------------------------------------------------------------------
     public void addCanceledOrder(OrderInfo orderInfo) {
         canceledOrders.add(orderInfo);
+    }
+
+    public boolean hasCanceledOrders() {
+        return !canceledOrders.isEmpty();
     }
 
     public OrderInfo pollLowestPriceCanceledOrder() {
         return canceledOrders.poll();
     }
 
-    public boolean hasCanceledOrders() {
-        return !canceledOrders.isEmpty();
+    // ----------------------------------------------------------------------------------------------------
+    // 가격 충돌 관리
+    // ----------------------------------------------------------------------------------------------------
+    public boolean conflictsWithSellOrders(BigDecimal newPrice) {
+        for (OrderInfo info : sellOrders.values()) {
+            if (isConflicting(info.avgBuyPrice(), newPrice)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public OrderInfo findConflictingBuyOrder(BigDecimal newPrice) {
+        for (OrderInfo info : buyOrders.values()) {
+            if (isConflicting(info.numericPrice(), newPrice)) {
+                return info;
+            }
+        }
+        return null;
+    }
+
+    private boolean isConflicting(BigDecimal existingPrice, BigDecimal newPrice) {
+        BigDecimal priceDifference = existingPrice.subtract(newPrice).abs();
+        BigDecimal priceLimit = existingPrice.multiply(tradingProperties.risk().priceConflictToleranceRate());
+        return priceDifference.compareTo(priceLimit) < 0;
     }
 }

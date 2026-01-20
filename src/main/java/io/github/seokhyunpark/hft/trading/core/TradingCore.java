@@ -68,7 +68,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         // 중복된 가격 확인
         if (buyParams.isInvalid()
                 || orderManager.hasBuyOrderAt(buyParams.price())
-                || orderManager.hasConflictingWithHoldings(buyParams.price())) {
+                || orderManager.conflictsWithSellOrders(buyParams.price())) {
             return;
         }
 
