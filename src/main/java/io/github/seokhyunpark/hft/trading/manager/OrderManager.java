@@ -30,7 +30,7 @@ public class OrderManager {
     );
 
     private final Set<Long> closedOrders = Collections.synchronizedSet(
-            Collections.newSetFromMap(new LinkedHashMap<Long, Boolean>(1000, 0.75f, true) {
+            Collections.newSetFromMap(new LinkedHashMap<>(1000, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(Map.Entry<Long, Boolean> eldest) {
                     return size() > 1000;
@@ -41,10 +41,6 @@ public class OrderManager {
     // ----------------------------------------------------------------------------------------------------
     // 공통 주문 관리
     // ----------------------------------------------------------------------------------------------------
-    public int getOpenOrdersCount() {
-        return buyOrders.size() + sellOrders.size();
-    }
-
     public boolean hasOpenOrderCapacity() {
         return buyOrders.size() + sellOrders.size() < tradingProperties.risk().maxOpenOrders();
     }
@@ -76,10 +72,6 @@ public class OrderManager {
     // ----------------------------------------------------------------------------------------------------
     // 매수 주문 관리
     // ----------------------------------------------------------------------------------------------------
-    public int getBuyOrderCount() {
-        return buyOrders.size();
-    }
-
     public void addBuyOrder(OrderInfo orderInfo) {
         if (closedOrders.contains(orderInfo.orderId())) {
             log.debug("[CLOSED-BUY] 이미 종료된 매수 주문 재등록 방지 | 주문번호: {}", orderInfo.orderId());
@@ -115,10 +107,6 @@ public class OrderManager {
     // ----------------------------------------------------------------------------------------------------
     // 매도 주문 관리
     // ----------------------------------------------------------------------------------------------------
-    public int getSellOrderCount() {
-        return sellOrders.size();
-    }
-
     public void addSellOrder(OrderInfo orderInfo) {
         if (closedOrders.contains(orderInfo.orderId())) {
             log.debug("[CLOSED-SELL] 이미 종료된 매도 주문 재등록 방지 | 주문번호: {}", orderInfo.orderId());
