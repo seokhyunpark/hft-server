@@ -31,12 +31,14 @@ public record GetAccountResponse(
             @JsonProperty("taker") String taker,
             @JsonProperty("buyer") String buyer,
             @JsonProperty("seller") String seller
-    ) {}
+    ) {
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Balance(
             @JsonProperty("asset") String asset,
             @JsonProperty("free") String free,
             @JsonProperty("locked") String locked
-    ) {}
+    ) {
+    }
 }

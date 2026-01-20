@@ -24,7 +24,8 @@ public record TradingProperties(
             BigDecimal buyWallThresholdUsd,
             BigDecimal targetMargin,
             BigDecimal priceConflictThreshold
-    ) {}
+    ) {
+    }
 
     private static final int SCALE = 10;
 

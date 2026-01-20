@@ -18,5 +18,6 @@ public record AccountUpdate(
             @JsonProperty("a") String asset,
             @JsonProperty("f") String free,
             @JsonProperty("l") String locked
-    ) {}
+    ) {
+    }
 }

@@ -22,4 +22,5 @@ public record CancelOrderResponse(
         @JsonProperty("type") String type,
         @JsonProperty("side") String side,
         @JsonProperty("selfTradePreventionMode") String selfTradePreventionMode
-) {}
+) {
+}

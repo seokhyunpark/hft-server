@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 
 import org.springframework.stereotype.Component;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import io.github.seokhyunpark.hft.exchange.dto.stream.AccountUpdate;
 import io.github.seokhyunpark.hft.exchange.dto.stream.BalanceUpdate;
 import io.github.seokhyunpark.hft.exchange.dto.stream.OrderUpdate;
@@ -15,13 +18,11 @@ import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
 import io.github.seokhyunpark.hft.trading.dto.OrderParams;
 import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
 import io.github.seokhyunpark.hft.trading.ledger.AcquiredLedger;
-import io.github.seokhyunpark.hft.trading.manager.QuoteAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.OrderManager;
+import io.github.seokhyunpark.hft.trading.manager.QuoteAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.RateLimitManager;
 import io.github.seokhyunpark.hft.trading.service.OrderService;
 import io.github.seokhyunpark.hft.trading.strategy.TradingStrategy;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -151,8 +152,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
             if (deleteInfo != null) {
                 orderService.executeCancelSellOrder(deleteInfo);
             }
-        }
-        else if (orderManager.isSellOrdersRestorable()) {
+        } else if (orderManager.isSellOrdersRestorable()) {
             if (!orderManager.hasCanceledOrders()) {
                 return;
             }

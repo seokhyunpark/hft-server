@@ -19,5 +19,6 @@ public record LogonRequest(
             String apiKey,
             String signature,
             long timestamp
-    ) {}
+    ) {
+    }
 }

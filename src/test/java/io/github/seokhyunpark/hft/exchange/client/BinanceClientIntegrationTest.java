@@ -11,12 +11,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.ResponseEntity;
 
+import lombok.extern.slf4j.Slf4j;
+
 import io.github.seokhyunpark.hft.exchange.dto.rest.CancelOrderResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountResponse.Balance;
 import io.github.seokhyunpark.hft.exchange.dto.rest.GetOrderResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.NewOrderResponse;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @SpringBootTest(properties = "hft.websocket.enabled=false")

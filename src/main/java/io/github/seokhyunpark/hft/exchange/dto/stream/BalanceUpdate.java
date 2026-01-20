@@ -11,4 +11,5 @@ public record BalanceUpdate(
         @JsonProperty("a") String asset,
         @JsonProperty("d") String balanceDelta,
         @JsonProperty("T") long clearTime
-) {}
+) {
+}

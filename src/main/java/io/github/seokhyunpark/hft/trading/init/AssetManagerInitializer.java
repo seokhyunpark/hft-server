@@ -7,11 +7,12 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import io.github.seokhyunpark.hft.exchange.client.BinanceClient;
 import io.github.seokhyunpark.hft.exchange.dto.rest.GetAccountResponse.Balance;
 import io.github.seokhyunpark.hft.trading.manager.QuoteAssetManager;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
