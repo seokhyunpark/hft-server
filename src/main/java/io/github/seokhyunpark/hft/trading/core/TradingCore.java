@@ -14,14 +14,14 @@ import io.github.seokhyunpark.hft.exchange.dto.stream.PartialBookDepth;
 import io.github.seokhyunpark.hft.exchange.listener.MarketEventListener;
 import io.github.seokhyunpark.hft.exchange.listener.UserEventListener;
 import io.github.seokhyunpark.hft.trading.config.TradingProperties;
+import io.github.seokhyunpark.hft.trading.dto.NewOrderParams;
 import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
-import io.github.seokhyunpark.hft.trading.dto.OrderParams;
 import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
+import io.github.seokhyunpark.hft.trading.executor.OrderExecutor;
 import io.github.seokhyunpark.hft.trading.manager.BaseAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.OrderManager;
 import io.github.seokhyunpark.hft.trading.manager.QuoteAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.RateLimitManager;
-import io.github.seokhyunpark.hft.trading.executor.OrderExecutor;
 import io.github.seokhyunpark.hft.trading.strategy.TradingStrategy;
 
 @Slf4j
@@ -59,7 +59,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
             }
         }
 
-        OrderParams buyParams = tradingStrategy.calculateBuyOrderParams(depth);
+        NewOrderParams buyParams = tradingStrategy.calculateBuyOrderParams(depth);
         OrderInfo conflictingBuyOrder = orderManager.findConflictingBuyOrder(buyParams.price());
         if (conflictingBuyOrder != null) {
             orderExecutor.cancelBuyAsync(conflictingBuyOrder);
@@ -263,7 +263,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
 
         if (baseAssetManager.isSellable()) {
             PositionInfo pulledInfo = baseAssetManager.pullAcquired();
-            OrderParams sellParams = tradingStrategy.calculateSellOrderParams(pulledInfo);
+            NewOrderParams sellParams = tradingStrategy.calculateSellOrderParams(pulledInfo);
             orderExecutor.sellAsync(sellParams, pulledInfo);
         }
     }

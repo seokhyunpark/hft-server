@@ -13,8 +13,8 @@ import io.github.seokhyunpark.hft.exchange.client.BinanceClient;
 import io.github.seokhyunpark.hft.exchange.dto.rest.CancelOrderResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.NewOrderResponse;
 import io.github.seokhyunpark.hft.trading.config.TradingProperties;
+import io.github.seokhyunpark.hft.trading.dto.NewOrderParams;
 import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
-import io.github.seokhyunpark.hft.trading.dto.OrderParams;
 import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
 import io.github.seokhyunpark.hft.trading.manager.BaseAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.OrderManager;
@@ -33,7 +33,7 @@ public class OrderExecutor {
     private final TradingStrategy tradingStrategy;
 
     @Async("buyOrderExecutor")
-    public void buyAsync(OrderParams params) {
+    public void buyAsync(NewOrderParams params) {
         try {
             ResponseEntity<NewOrderResponse> responseEntity = binanceClient.buyLimitMaker(
                     tradingProperties.symbol(),
@@ -83,7 +83,7 @@ public class OrderExecutor {
     }
 
     @Async("sellOrderExecutor")
-    public void sellAsync(OrderParams params, PositionInfo pulledInfo) {
+    public void sellAsync(NewOrderParams params, PositionInfo pulledInfo) {
         try {
             ResponseEntity<NewOrderResponse> responseEntity = binanceClient.sellLimitMaker(
                     tradingProperties.symbol(),
@@ -117,7 +117,7 @@ public class OrderExecutor {
         try {
             BigDecimal qty = new BigDecimal(info.qty());
             BigDecimal avgBuyPrice = info.avgBuyPrice();
-            OrderParams sellParams = tradingStrategy.calculateSellOrderParams(qty, avgBuyPrice);
+            NewOrderParams sellParams = tradingStrategy.calculateSellOrderParams(qty, avgBuyPrice);
 
             ResponseEntity<NewOrderResponse> responseEntity = binanceClient.sellLimitMaker(
                     info.symbol(),

@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import io.github.seokhyunpark.hft.exchange.dto.stream.PartialBookDepth;
 import io.github.seokhyunpark.hft.trading.config.TradingProperties;
-import io.github.seokhyunpark.hft.trading.dto.OrderParams;
+import io.github.seokhyunpark.hft.trading.dto.NewOrderParams;
 import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
 
 @Slf4j
@@ -27,13 +27,13 @@ public class TradingStrategy {
     // ----------------------------------------------------------------------------------------------------
     // 매수 주문 전략
     // ----------------------------------------------------------------------------------------------------
-    public OrderParams calculateBuyOrderParams(PartialBookDepth depth) {
+    public NewOrderParams calculateBuyOrderParams(PartialBookDepth depth) {
         BigDecimal price = calculateBuyPrice(depth);
         if (price.compareTo(BigDecimal.ZERO) <= 0) {
-            return new OrderParams(BigDecimal.ZERO, BigDecimal.ZERO);
+            return new NewOrderParams(BigDecimal.ZERO, BigDecimal.ZERO);
         }
         BigDecimal qty = calculateBuyQty(price);
-        return new OrderParams(price, qty);
+        return new NewOrderParams(qty, price);
     }
 
     private BigDecimal calculateBuyPrice(PartialBookDepth depth) {
@@ -75,17 +75,17 @@ public class TradingStrategy {
         }
     }
 
-    public OrderParams calculateSellOrderParams(PositionInfo info) {
+    public NewOrderParams calculateSellOrderParams(PositionInfo info) {
         return calculateSellOrderParams(info.totalQty(), info.getAvgPrice());
     }
 
-    public OrderParams calculateSellOrderParams(BigDecimal qty, BigDecimal avgBuyPrice) {
+    public NewOrderParams calculateSellOrderParams(BigDecimal qty, BigDecimal avgBuyPrice) {
         BigDecimal targetAskPrice = avgBuyPrice.multiply(tradingProperties.risk().targetMultiplier());
         BigDecimal bestAskPrice = targetAskPrice.max(latestBestAskPrice.get());
 
         BigDecimal scaledPrice = tradingProperties.scalePrice(bestAskPrice);
         BigDecimal scaleQty = tradingProperties.scaleQty(qty);
 
-        return new OrderParams(scaledPrice, scaleQty);
+        return new NewOrderParams(scaleQty, scaledPrice);
     }
 }
