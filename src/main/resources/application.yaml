@@ -32,9 +32,9 @@ hft:
 
     risk:
       max-open-orders: "190"
+      max-buy-orders: "1"
       max-sell-orders: "100"
       min-sell-orders: "90"
-      buy-orders-limit: "1"
       buy-wall-threshold-usd: "1000"
-      target-margin: "1.0001"
-      price-conflict-threshold: "0.000005"
+      target-multiplier: "1.0001"
+      price-conflict-tolerance-rate: "0.000005"

@@ -205,7 +205,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         BigDecimal estimatedAvgBuyPrice = tradingProperties.scalePrice(
                 tradingProperties.divide(
                         new BigDecimal(update.orderPrice()),
-                        tradingProperties.risk().targetMargin()
+                        tradingProperties.risk().targetMultiplier()
                 )
         );
 

@@ -80,7 +80,7 @@ public class TradingStrategy {
     }
 
     public OrderParams calculateSellOrderParams(BigDecimal qty, BigDecimal avgBuyPrice) {
-        BigDecimal targetAskPrice = avgBuyPrice.multiply(tradingProperties.risk().targetMargin());
+        BigDecimal targetAskPrice = avgBuyPrice.multiply(tradingProperties.risk().targetMultiplier());
         BigDecimal bestAskPrice = targetAskPrice.max(latestBestAskPrice.get());
 
         BigDecimal scaledPrice = tradingProperties.scalePrice(bestAskPrice);

@@ -66,7 +66,7 @@ public class OrderManager {
 
     private boolean isConflicting(BigDecimal existingPrice, BigDecimal newPrice) {
         BigDecimal diff = existingPrice.subtract(newPrice).abs();
-        BigDecimal limit = existingPrice.multiply(tradingProperties.risk().priceConflictThreshold());
+        BigDecimal limit = existingPrice.multiply(tradingProperties.risk().priceConflictToleranceRate());
         return diff.compareTo(limit) < 0;
     }
 
@@ -92,7 +92,7 @@ public class OrderManager {
     }
 
     public boolean isBuyOrdersFull() {
-        return buyOrders.size() > tradingProperties.risk().buyOrdersLimit();
+        return buyOrders.size() > tradingProperties.risk().maxBuyOrders();
     }
 
     public OrderInfo getOldestBuyOrder() {
