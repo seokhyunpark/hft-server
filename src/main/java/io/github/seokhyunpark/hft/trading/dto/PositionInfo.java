@@ -11,11 +11,11 @@ public record PositionInfo(
         this(BigDecimal.ZERO, BigDecimal.ZERO);
     }
 
-    public BigDecimal getAvgPrice() {
+    public BigDecimal getAvgPrice(int scale) {
         if (totalQty.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
-        return totalUsdValue.divide(totalQty, RoundingMode.CEILING);
+        return totalUsdValue.divide(totalQty, scale, RoundingMode.HALF_UP);
     }
 
     public PositionInfo add(BigDecimal qty, BigDecimal usd) {

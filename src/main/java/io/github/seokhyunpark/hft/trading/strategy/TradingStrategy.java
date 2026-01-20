@@ -76,7 +76,7 @@ public class TradingStrategy {
     }
 
     public NewOrderParams calculateSellOrderParams(PositionInfo info) {
-        return calculateSellOrderParams(info.totalQty(), info.getAvgPrice());
+        return calculateSellOrderParams(info.totalQty(), info.getAvgPrice(tradingProperties.priceTickSize().scale()));
     }
 
     public NewOrderParams calculateSellOrderParams(BigDecimal qty, BigDecimal avgBuyPrice) {
