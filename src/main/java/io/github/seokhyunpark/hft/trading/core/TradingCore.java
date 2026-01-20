@@ -17,7 +17,7 @@ import io.github.seokhyunpark.hft.trading.config.TradingProperties;
 import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
 import io.github.seokhyunpark.hft.trading.dto.OrderParams;
 import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
-import io.github.seokhyunpark.hft.trading.ledger.AcquiredLedger;
+import io.github.seokhyunpark.hft.trading.manager.BaseAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.OrderManager;
 import io.github.seokhyunpark.hft.trading.manager.QuoteAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.RateLimitManager;
@@ -34,7 +34,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     private final RateLimitManager rateLimitManager;
     private final OrderService orderService;
     private final TradingProperties tradingProperties;
-    private final AcquiredLedger acquiredLedger;
+    private final BaseAssetManager baseAssetManager;
 
     // ----------------------------------------------------------------------------------------------------
     // Market Event
@@ -254,15 +254,15 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     private void handleTradeBuyState(OrderUpdate update) {
         BigDecimal executedQty = new BigDecimal(update.lastExecutedQty());
         BigDecimal executedUsdValue = new BigDecimal(update.lastQuoteAssetTransactedQty());
-        acquiredLedger.addAcquired(executedQty, executedUsdValue);
+        baseAssetManager.addAcquired(executedQty, executedUsdValue);
 
         if (update.currentOrderStatus().equals("FILLED")) {
             orderManager.removeBuyOrder(update.orderId());
             rateLimitManager.onOrderFilled();
         }
 
-        if (acquiredLedger.isSellable()) {
-            PositionInfo pulledInfo = acquiredLedger.pullAcquired();
+        if (baseAssetManager.isSellable()) {
+            PositionInfo pulledInfo = baseAssetManager.pullAcquired();
             OrderParams sellParams = tradingStrategy.calculateSellOrderParams(pulledInfo);
             orderService.executeSellOrder(sellParams, pulledInfo);
         }

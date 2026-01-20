@@ -1,4 +1,4 @@
-package io.github.seokhyunpark.hft.trading.ledger;
+package io.github.seokhyunpark.hft.trading.manager;
 
 import java.math.BigDecimal;
 import java.util.concurrent.atomic.AtomicReference;
@@ -14,7 +14,7 @@ import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class AcquiredLedger {
+public class BaseAssetManager {
     private final TradingProperties properties;
 
     private final AtomicReference<PositionInfo> acquired = new AtomicReference<>(new PositionInfo());
