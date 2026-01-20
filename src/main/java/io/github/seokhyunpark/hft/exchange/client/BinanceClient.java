@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -50,7 +51,7 @@ public class BinanceClient {
                 .build();
     }
 
-    public NewOrderResponse buyMarket(String symbol, String qty) {
+    public ResponseEntity<NewOrderResponse> buyMarket(String symbol, String qty) {
         NewOrderRequest request = new NewOrderRequest();
         request.setSymbol(symbol);
         request.setSide("BUY");
@@ -66,7 +67,7 @@ public class BinanceClient {
         );
     }
 
-    public NewOrderResponse sellMarket(String symbol, String qty) {
+    public ResponseEntity<NewOrderResponse> sellMarket(String symbol, String qty) {
         NewOrderRequest request = new NewOrderRequest();
         request.setSymbol(symbol);
         request.setSide("SELL");
@@ -82,7 +83,7 @@ public class BinanceClient {
         );
     }
 
-    public NewOrderResponse buyLimitMaker(String symbol, String qty, String price) {
+    public ResponseEntity<NewOrderResponse> buyLimitMaker(String symbol, String qty, String price) {
         NewOrderRequest request = new NewOrderRequest();
         request.setSymbol(symbol);
         request.setSide("BUY");
@@ -99,7 +100,7 @@ public class BinanceClient {
         );
     }
 
-    public NewOrderResponse sellLimitMaker(String symbol, String qty, String price) {
+    public ResponseEntity<NewOrderResponse> sellLimitMaker(String symbol, String qty, String price) {
         NewOrderRequest request = new NewOrderRequest();
         request.setSymbol(symbol);
         request.setSide("SELL");
@@ -116,7 +117,7 @@ public class BinanceClient {
         );
     }
 
-    public GetOrderResponse getOrder(String symbol, long orderId) {
+    public ResponseEntity<GetOrderResponse> getOrder(String symbol, long orderId) {
         GetOrderRequest request = new GetOrderRequest();
         request.setSymbol(symbol);
         request.setOrderId(orderId);
@@ -130,7 +131,7 @@ public class BinanceClient {
         );
     }
 
-    public CancelOrderResponse cancelOrder(String symbol, long orderId) {
+    public ResponseEntity<CancelOrderResponse> cancelOrder(String symbol, long orderId) {
         CancelOrderRequest request = new CancelOrderRequest();
         request.setSymbol(symbol);
         request.setOrderId(orderId);
@@ -144,7 +145,7 @@ public class BinanceClient {
         );
     }
 
-    public GetAccountResponse getAccount() {
+    public ResponseEntity<GetAccountResponse> getAccount() {
         GetAccountRequest request = new GetAccountRequest();
         request.setOmitZeroBalances(true);
         request.setTimestamp(getCurrentTimestamp());
@@ -158,8 +159,12 @@ public class BinanceClient {
     }
 
     public Balance getBalance(String asset) {
-        List<Balance> balances = getAccount().balances();
+        ResponseEntity<GetAccountResponse> response = getAccount();
+        if (response == null || response.getBody() == null) {
+            return new Balance(asset, "0.0", "0.0");
+        }
 
+        List<Balance> balances = response.getBody().balances();
         for (Balance balance : balances) {
             if (balance.asset().equals(asset)) {
                 return balance;
@@ -168,7 +173,7 @@ public class BinanceClient {
         return new Balance(asset, "0.0", "0.0");
     }
 
-    private <T> T sendRequest(String endpoint, String method, Object requestDto, Class<T> responseType) {
+    private <T> ResponseEntity<T> sendRequest(String endpoint, String method, Object requestDto, Class<T> responseType) {
         try {
             Map<String, String> params = objectMapper.convertValue(requestDto, new TypeReference<>() {
             });
@@ -177,7 +182,7 @@ public class BinanceClient {
             return restClient.method(org.springframework.http.HttpMethod.valueOf(method))
                     .uri(uri)
                     .retrieve()
-                    .body(responseType);
+                    .toEntity(responseType);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -1,14 +1,9 @@
 package io.github.seokhyunpark.hft.exchange.service;
 
-import io.github.seokhyunpark.hft.exchange.dto.stream.AccountUpdate;
-import io.github.seokhyunpark.hft.exchange.dto.stream.BalanceUpdate;
-import io.github.seokhyunpark.hft.exchange.dto.stream.OrderUpdate;
-import io.github.seokhyunpark.hft.exchange.listener.UserEventListener;
 import io.github.seokhyunpark.hft.exchange.stream.MarketDataStream;
-import io.github.seokhyunpark.hft.exchange.dto.stream.PartialBookDepth;
-import io.github.seokhyunpark.hft.exchange.listener.MarketEventListener;
 import io.github.seokhyunpark.hft.exchange.stream.UserDataStream;
 import io.github.seokhyunpark.hft.exchange.util.SignatureUtil;
+import io.github.seokhyunpark.hft.trading.core.TradingCore;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +12,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -25,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class ExchangeService {
     private final SignatureUtil signatureUtil;
+    private final TradingCore tradingCore;
 
     private MarketDataStream marketDataStream;
     private UserDataStream userDataStream;
@@ -51,8 +46,7 @@ public class ExchangeService {
             return;
         }
 
-        boolean userStreamConnected = connectUserStream();
-        if (userStreamConnected) {
+        if (connectUserStream()) {
             connectMarketStream();
         }
     }
@@ -60,25 +54,7 @@ public class ExchangeService {
     private boolean connectUserStream() {
         try {
             URI uri = new URI(userUri);
-
-            UserEventListener userEventListener = new UserEventListener() {
-                @Override
-                public void onAccountUpdateReceived(AccountUpdate accountUpdate) {
-                    log.info("[User: Account] {}", accountUpdate.toString());
-                }
-
-                @Override
-                public void onBalanceUpdateReceived(BalanceUpdate balanceUpdate) {
-                    log.info("[User: Balance] {}", balanceUpdate.toString());
-                }
-
-                @Override
-                public void onOrderUpdateReceived(OrderUpdate orderUpdate) {
-                    log.info("[User: Order] {}", orderUpdate.toString());
-                }
-            };
-
-            userDataStream = new UserDataStream(uri, userEventListener, apiKey, privateKeyPath, signatureUtil);
+            userDataStream = new UserDataStream(uri, tradingCore, apiKey, privateKeyPath, signatureUtil);
 
             boolean connected = userDataStream.connectBlocking();
             if (!connected) {
@@ -103,28 +79,7 @@ public class ExchangeService {
     private void connectMarketStream() {
         try {
             URI uri = new URI(marketUri);
-
-            MarketEventListener marketEventListener = new MarketEventListener() {
-                @Override
-                public void onPartialBookDepthReceived(PartialBookDepth depth) {
-                    if (depth == null) {
-                        return;
-                    }
-
-                    List<List<String>> bids = depth.bids();
-                    List<List<String>> asks = depth.asks();
-                    if (bids == null || bids.isEmpty() || asks == null || asks.isEmpty()) {
-                        return;
-                    }
-
-                    String price = bids.getFirst().getFirst();
-                    String qty = bids.getFirst().getLast();
-
-                    log.debug("[Market] 수신 ID: {} | 가격: {}, 수량: {}", depth.lastUpdateId(), price, qty);
-                }
-            };
-
-            marketDataStream = new MarketDataStream(uri, marketEventListener);
+            marketDataStream = new MarketDataStream(uri, tradingCore);
             marketDataStream.connect();
 
         } catch (Exception e) {
