@@ -16,8 +16,8 @@ import io.github.seokhyunpark.hft.trading.config.TradingProperties;
 import io.github.seokhyunpark.hft.trading.dto.NewOrderParams;
 import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
 import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
-import io.github.seokhyunpark.hft.trading.manager.BaseAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.OrderManager;
+import io.github.seokhyunpark.hft.trading.manager.PositionManager;
 import io.github.seokhyunpark.hft.trading.manager.RateLimitManager;
 import io.github.seokhyunpark.hft.trading.strategy.TradingStrategy;
 
@@ -26,7 +26,7 @@ import io.github.seokhyunpark.hft.trading.strategy.TradingStrategy;
 @RequiredArgsConstructor
 public class OrderExecutor {
     private final BinanceClient binanceClient;
-    private final BaseAssetManager baseAssetManager;
+    private final PositionManager positionManager;
     private final OrderManager orderManager;
     private final RateLimitManager rateLimitManager;
     private final TradingProperties tradingProperties;
@@ -107,7 +107,7 @@ public class OrderExecutor {
                 log.debug("[NEW-SELL] 신규 매도 주문 요청 성공 | 주문번호: {}", info.orderId());
             }
         } catch (Exception e) {
-            baseAssetManager.restoreAcquired(pulledInfo);
+            positionManager.restoreAcquired(pulledInfo);
             log.error("[NEW-SELL] 신규 매도 주문 요청 실패 | 에러 메시지: {}", e.getMessage());
         }
     }

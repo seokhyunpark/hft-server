@@ -18,8 +18,8 @@ import io.github.seokhyunpark.hft.trading.dto.NewOrderParams;
 import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
 import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
 import io.github.seokhyunpark.hft.trading.executor.OrderExecutor;
-import io.github.seokhyunpark.hft.trading.manager.BaseAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.OrderManager;
+import io.github.seokhyunpark.hft.trading.manager.PositionManager;
 import io.github.seokhyunpark.hft.trading.manager.QuoteAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.RateLimitManager;
 import io.github.seokhyunpark.hft.trading.strategy.TradingStrategy;
@@ -34,7 +34,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     private final RateLimitManager rateLimitManager;
     private final OrderExecutor orderExecutor;
     private final TradingProperties tradingProperties;
-    private final BaseAssetManager baseAssetManager;
+    private final PositionManager positionManager;
 
     // ----------------------------------------------------------------------------------------------------
     // Market Event
@@ -254,15 +254,15 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     private void handleTradeBuyState(OrderUpdate update) {
         BigDecimal executedQty = new BigDecimal(update.lastExecutedQty());
         BigDecimal executedUsdValue = new BigDecimal(update.lastQuoteAssetTransactedQty());
-        baseAssetManager.addAcquired(executedQty, executedUsdValue);
+        positionManager.addAcquired(executedQty, executedUsdValue);
 
         if (update.currentOrderStatus().equals("FILLED")) {
             orderManager.removeBuyOrder(update.orderId());
             rateLimitManager.onOrderFilled();
         }
 
-        if (baseAssetManager.isSellable()) {
-            PositionInfo pulledInfo = baseAssetManager.pullAcquired();
+        if (positionManager.isSellable()) {
+            PositionInfo pulledInfo = positionManager.pullAcquired();
             NewOrderParams sellParams = tradingStrategy.calculateSellOrderParams(pulledInfo);
             orderExecutor.sellAsync(sellParams, pulledInfo);
         }

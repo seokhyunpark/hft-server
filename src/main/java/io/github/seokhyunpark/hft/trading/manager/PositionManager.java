@@ -14,7 +14,7 @@ import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class BaseAssetManager {
+public class PositionManager {
     private final TradingProperties properties;
 
     private final AtomicReference<PositionInfo> acquired = new AtomicReference<>(new PositionInfo());
