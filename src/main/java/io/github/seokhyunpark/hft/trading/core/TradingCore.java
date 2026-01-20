@@ -254,7 +254,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     private void handleTradeBuyState(OrderUpdate update) {
         BigDecimal executedQty = new BigDecimal(update.lastExecutedQty());
         BigDecimal executedUsdValue = new BigDecimal(update.lastQuoteAssetTransactedQty());
-        positionManager.addAcquired(executedQty, executedUsdValue);
+        positionManager.addPosition(executedQty, executedUsdValue);
 
         if (update.currentOrderStatus().equals("FILLED")) {
             orderManager.removeBuyOrder(update.orderId());
@@ -262,7 +262,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         }
 
         if (positionManager.isSellable()) {
-            PositionInfo pulledInfo = positionManager.pullAcquired();
+            PositionInfo pulledInfo = positionManager.pullPosition();
             NewOrderParams sellParams = tradingStrategy.calculateSellOrderParams(pulledInfo);
             orderExecutor.sellAsync(sellParams, pulledInfo);
         }

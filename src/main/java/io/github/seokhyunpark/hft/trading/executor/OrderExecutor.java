@@ -107,7 +107,7 @@ public class OrderExecutor {
                 log.debug("[NEW-SELL] 신규 매도 주문 요청 성공 | 주문번호: {}", info.orderId());
             }
         } catch (Exception e) {
-            positionManager.restoreAcquired(pulledInfo);
+            positionManager.restorePosition(pulledInfo);
             log.error("[NEW-SELL] 신규 매도 주문 요청 실패 | 에러 메시지: {}", e.getMessage());
         }
     }

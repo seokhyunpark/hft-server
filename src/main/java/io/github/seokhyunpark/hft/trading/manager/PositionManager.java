@@ -17,30 +17,26 @@ import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
 public class PositionManager {
     private final TradingProperties properties;
 
-    private final AtomicReference<PositionInfo> acquired = new AtomicReference<>(new PositionInfo());
+    private final AtomicReference<PositionInfo> position = new AtomicReference<>(new PositionInfo());
 
-    public void addAcquired(BigDecimal qty, BigDecimal usdValue) {
+    public void addPosition(BigDecimal qty, BigDecimal usdValue) {
         BigDecimal cleanQty = properties.scaleQty(qty);
-        PositionInfo added = acquired.updateAndGet(cur -> cur.add(cleanQty, usdValue));
-        log.info("[BASE-ASSET] 증가: {}", added);
+        PositionInfo added = position.updateAndGet(cur -> cur.add(cleanQty, usdValue));
+        log.debug("[POSITION] 증가: {}", added);
     }
 
-    public PositionInfo pullAcquired() {
-        PositionInfo pulled = acquired.getAndSet(new PositionInfo());
-        log.info("[BASE-ASSET] 추출 및 초기화: {}", pulled);
+    public PositionInfo pullPosition() {
+        PositionInfo pulled = position.getAndSet(new PositionInfo());
+        log.debug("[POSITION] 추출 및 초기화: {}", pulled);
         return pulled;
     }
 
-    public void restoreAcquired(PositionInfo info) {
-        PositionInfo restored = acquired.updateAndGet(cur -> cur.add(info.totalQty(), info.totalUsdValue()));
-        log.info("[BASE-ASSET] 복구: {}", restored);
-    }
-
-    public PositionInfo getAcquired() {
-        return acquired.get();
+    public void restorePosition(PositionInfo info) {
+        PositionInfo restored = position.updateAndGet(cur -> cur.add(info.totalQty(), info.totalUsdValue()));
+        log.debug("[POSITION] 복구: {}", restored);
     }
 
     public boolean isSellable() {
-        return acquired.get().totalUsdValue().compareTo(properties.minOrderSize()) >= 0;
+        return position.get().totalUsdValue().compareTo(properties.minOrderSize()) >= 0;
     }
 }
