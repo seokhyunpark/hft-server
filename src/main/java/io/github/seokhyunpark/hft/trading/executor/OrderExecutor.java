@@ -1,10 +1,10 @@
-package io.github.seokhyunpark.hft.trading.service;
+package io.github.seokhyunpark.hft.trading.executor;
 
 import java.math.BigDecimal;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,9 +22,9 @@ import io.github.seokhyunpark.hft.trading.manager.RateLimitManager;
 import io.github.seokhyunpark.hft.trading.strategy.TradingStrategy;
 
 @Slf4j
-@Service
+@Component
 @RequiredArgsConstructor
-public class OrderService {
+public class OrderExecutor {
     private final BinanceClient binanceClient;
     private final BaseAssetManager baseAssetManager;
     private final OrderManager orderManager;
@@ -33,7 +33,7 @@ public class OrderService {
     private final TradingStrategy tradingStrategy;
 
     @Async("buyOrderExecutor")
-    public void executeBuyOrder(OrderParams params) {
+    public void buyAsync(OrderParams params) {
         try {
             ResponseEntity<NewOrderResponse> responseEntity = binanceClient.buyLimitMaker(
                     tradingProperties.symbol(),
@@ -60,7 +60,7 @@ public class OrderService {
     }
 
     @Async("buyOrderExecutor")
-    public void executeCancelBuyOrder(OrderInfo info) {
+    public void cancelBuyAsync(OrderInfo info) {
         try {
             if (!orderManager.containsBuyOrder(info.orderId())) {
                 log.debug("[CANCEL-BUY] 이미 체결 또는 취소된 매수 주문 | 주문번호: {}", info.orderId());
@@ -83,7 +83,7 @@ public class OrderService {
     }
 
     @Async("sellOrderExecutor")
-    public void executeSellOrder(OrderParams params, PositionInfo pulledInfo) {
+    public void sellAsync(OrderParams params, PositionInfo pulledInfo) {
         try {
             ResponseEntity<NewOrderResponse> responseEntity = binanceClient.sellLimitMaker(
                     tradingProperties.symbol(),
@@ -113,7 +113,7 @@ public class OrderService {
     }
 
     @Async("sellOrderExecutor")
-    public void executeRestoreSellOrder(OrderInfo info) {
+    public void restoreSellAsync(OrderInfo info) {
         try {
             BigDecimal qty = new BigDecimal(info.qty());
             BigDecimal avgBuyPrice = info.avgBuyPrice();
@@ -145,7 +145,7 @@ public class OrderService {
     }
 
     @Async("sellOrderExecutor")
-    public void executeCancelSellOrder(OrderInfo info) {
+    public void cancelSellAsync(OrderInfo info) {
         try {
             if (!orderManager.containsSellOrder(info.orderId())) {
                 log.debug("[CANCEL-SELL] 이미 체결 또는 취소된 매도 주문 | 주문번호: {}", info.orderId());

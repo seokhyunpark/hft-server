@@ -21,7 +21,7 @@ import io.github.seokhyunpark.hft.trading.manager.BaseAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.OrderManager;
 import io.github.seokhyunpark.hft.trading.manager.QuoteAssetManager;
 import io.github.seokhyunpark.hft.trading.manager.RateLimitManager;
-import io.github.seokhyunpark.hft.trading.service.OrderService;
+import io.github.seokhyunpark.hft.trading.executor.OrderExecutor;
 import io.github.seokhyunpark.hft.trading.strategy.TradingStrategy;
 
 @Slf4j
@@ -32,7 +32,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     private final QuoteAssetManager quoteAssetManager;
     private final OrderManager orderManager;
     private final RateLimitManager rateLimitManager;
-    private final OrderService orderService;
+    private final OrderExecutor orderExecutor;
     private final TradingProperties tradingProperties;
     private final BaseAssetManager baseAssetManager;
 
@@ -55,14 +55,14 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         if (orderManager.isBuyOrdersFull()) {
             OrderInfo info = orderManager.getOldestBuyOrder();
             if (info != null) {
-                orderService.executeCancelBuyOrder(info);
+                orderExecutor.cancelBuyAsync(info);
             }
         }
 
         OrderParams buyParams = tradingStrategy.calculateBuyOrderParams(depth);
         OrderInfo conflictingBuyOrder = orderManager.findConflictingBuyOrder(buyParams.price());
         if (conflictingBuyOrder != null) {
-            orderService.executeCancelBuyOrder(conflictingBuyOrder);
+            orderExecutor.cancelBuyAsync(conflictingBuyOrder);
         }
 
         // 중복된 가격 확인
@@ -90,7 +90,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         // 매수 주문 (상태 낙관적 업데이트)
         rateLimitManager.onOrderPlaced();
         quoteAssetManager.deductQuoteBalance(buyParams.getUsdValue());
-        orderService.executeBuyOrder(buyParams);
+        orderExecutor.buyAsync(buyParams);
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -150,7 +150,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         if (orderManager.isSellOrdersFull()) {
             OrderInfo deleteInfo = orderManager.getHighestPriceSellOrder();
             if (deleteInfo != null) {
-                orderService.executeCancelSellOrder(deleteInfo);
+                orderExecutor.cancelSellAsync(deleteInfo);
             }
         } else if (orderManager.isSellOrdersRestorable()) {
             if (!orderManager.hasCanceledOrders()) {
@@ -161,7 +161,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
             }
             OrderInfo restoreInfo = orderManager.pollLowestPriceCanceledOrder();
             if (restoreInfo != null) {
-                orderService.executeRestoreSellOrder(restoreInfo);
+                orderExecutor.restoreSellAsync(restoreInfo);
             }
         }
     }
@@ -264,7 +264,7 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         if (baseAssetManager.isSellable()) {
             PositionInfo pulledInfo = baseAssetManager.pullAcquired();
             OrderParams sellParams = tradingStrategy.calculateSellOrderParams(pulledInfo);
-            orderService.executeSellOrder(sellParams, pulledInfo);
+            orderExecutor.sellAsync(sellParams, pulledInfo);
         }
     }
 
