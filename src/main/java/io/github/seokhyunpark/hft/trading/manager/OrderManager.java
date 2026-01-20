@@ -142,6 +142,14 @@ public class OrderManager {
         return sellOrders.containsKey(orderId);
     }
 
+    public boolean isSellOrdersFull() {
+        return sellOrders.size() > tradingProperties.risk().maxSellOrders();
+    }
+
+    public boolean isSellOrdersRestorable() {
+        return sellOrders.size() < tradingProperties.risk().minSellOrders();
+    }
+
     // ----------------------------------------------------------------------------------------------------
     // 취소된 주문 관리
     // ----------------------------------------------------------------------------------------------------

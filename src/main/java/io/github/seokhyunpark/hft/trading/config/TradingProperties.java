@@ -18,6 +18,8 @@ public record TradingProperties(
 ) {
     public record Risk(
             int maxOpenOrders,
+            int maxSellOrders,
+            int minSellOrders,
             int buyOrdersLimit,
             BigDecimal buyWallThresholdUsd,
             BigDecimal targetMargin,

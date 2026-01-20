@@ -75,12 +75,16 @@ public class TradingStrategy {
     }
 
     public OrderParams calculateSellOrderParams(PositionInfo info) {
-        BigDecimal targetAskPrice = info.getAvgPrice().multiply(tradingProperties.risk().targetMargin());
+        return calculateSellOrderParams(info.totalQty(), info.getAvgPrice());
+    }
+
+    public OrderParams calculateSellOrderParams(BigDecimal qty, BigDecimal avgBuyPrice) {
+        BigDecimal targetAskPrice = avgBuyPrice.multiply(tradingProperties.risk().targetMargin());
         BigDecimal bestAskPrice = targetAskPrice.max(latestBestAskPrice.get());
 
-        BigDecimal price = tradingProperties.scalePrice(bestAskPrice);
-        BigDecimal qty = tradingProperties.scaleQty(info.totalQty());
+        BigDecimal scaledPrice = tradingProperties.scalePrice(bestAskPrice);
+        BigDecimal scaleQty = tradingProperties.scaleQty(qty);
 
-        return new OrderParams(price, qty);
+        return new OrderParams(scaledPrice, scaleQty);
     }
 }

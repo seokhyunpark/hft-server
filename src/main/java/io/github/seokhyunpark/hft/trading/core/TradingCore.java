@@ -47,6 +47,9 @@ public class TradingCore implements MarketEventListener, UserEventListener {
         // 매도 1호가 가격 업데이트
         tradingStrategy.updateBestAskPrice(depth);
 
+        // Sell Orders 개수 관리
+        manageSellOrders();
+
         // Buy Orders 개수 관리
         if (orderManager.isBuyOrdersFull()) {
             OrderInfo info = orderManager.getOldestBuyOrder();
@@ -138,6 +141,27 @@ public class TradingCore implements MarketEventListener, UserEventListener {
                 case "TRADE" -> handleTradeType(orderUpdate);
                 case "CANCELED" -> handleCanceledType(orderUpdate);
                 default -> log.info("[ORDER-UPDATE] 알 수 없는 타입: {}", orderUpdate.currentExecutionType());
+            }
+        }
+    }
+
+    private void manageSellOrders() {
+        if (orderManager.isSellOrdersFull()) {
+            OrderInfo deleteInfo = orderManager.getHighestPriceSellOrder();
+            if (deleteInfo != null) {
+                orderService.executeCancelSellOrder(deleteInfo);
+            }
+        }
+        else if (orderManager.isSellOrdersRestorable()) {
+            if (!orderManager.hasCanceledOrders()) {
+                return;
+            }
+            if (!rateLimitManager.hasRateLimitCapacity()) {
+                return;
+            }
+            OrderInfo restoreInfo = orderManager.pollLowestPriceCanceledOrder();
+            if (restoreInfo != null) {
+                orderService.executeRestoreSellOrder(restoreInfo);
             }
         }
     }
