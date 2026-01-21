@@ -26,28 +26,26 @@ import io.github.seokhyunpark.hft.trading.strategy.TradingStrategy;
 @Component
 @RequiredArgsConstructor
 public class UserEventProcessor implements UserEventListener {
-    private final TradingStrategy tradingStrategy;
-    private final QuoteAssetManager quoteAssetManager;
-    private final OrderManager orderManager;
-    private final RateLimitManager rateLimitManager;
+    private final TradingProperties props;
     private final OrderExecutor orderExecutor;
-    private final TradingProperties tradingProperties;
+    private final OrderManager orderManager;
     private final PositionManager positionManager;
+    private final QuoteAssetManager quoteAssetManager;
+    private final RateLimitManager rateLimitManager;
+    private final TradingStrategy tradingStrategy;
 
     @Override
     public void onAccountUpdateReceived(AccountUpdate accountUpdate) {
-        if (accountUpdate == null || accountUpdate.eventType() == null || accountUpdate.balances() == null) {
+        if (accountUpdate == null) {
+            return;
+        }
+        if (!"outboundAccountPosition".equals(accountUpdate.eventType())) {
             return;
         }
 
-        if (!accountUpdate.eventType().equals("outboundAccountPosition")) {
-            return;
-        }
-
-        for (AccountUpdate.Balance balanceEntry : accountUpdate.balances()) {
-            if (balanceEntry.asset().equals(tradingProperties.quoteAsset())) {
-                BigDecimal free = new BigDecimal(balanceEntry.free());
-                quoteAssetManager.syncQuoteBalance(free);
+        for (AccountUpdate.Balance entry : accountUpdate.balances()) {
+            if (entry.asset().equals(props.quoteAsset())) {
+                quoteAssetManager.syncQuoteBalance(new BigDecimal(entry.free()));
                 break;
             }
         }
@@ -55,31 +53,32 @@ public class UserEventProcessor implements UserEventListener {
 
     @Override
     public void onBalanceUpdateReceived(BalanceUpdate balanceUpdate) {
-        if (balanceUpdate == null || balanceUpdate.eventType() == null) {
+        if (balanceUpdate == null) {
+            return;
+        }
+        if (!"balanceUpdate".equals(balanceUpdate.eventType())) {
             return;
         }
 
-        if (!balanceUpdate.eventType().equals("balanceUpdate")) {
-            return;
-        }
-
-        if (balanceUpdate.asset().equals(tradingProperties.quoteAsset())) {
-            BigDecimal delta = new BigDecimal(balanceUpdate.balanceDelta());
-            quoteAssetManager.addQuoteBalance(delta);
+        if (props.quoteAsset().equals(balanceUpdate.asset())) {
+            quoteAssetManager.addQuoteBalance(new BigDecimal(balanceUpdate.balanceDelta()));
         }
     }
 
     @Override
     public void onOrderUpdateReceived(OrderUpdate orderUpdate) {
-        if (orderUpdate == null || !orderUpdate.eventType().equals("executionReport")) {
+        if (orderUpdate == null) {
             return;
         }
-        if (orderUpdate.symbol().equals(tradingProperties.symbol())) {
+        if (!"executionReport".equals(orderUpdate.eventType())) {
+            return;
+        }
+
+        if (props.symbol().equals(orderUpdate.symbol())) {
             switch (orderUpdate.currentExecutionType()) {
                 case "NEW" -> handleNewType(orderUpdate);
                 case "TRADE" -> handleTradeType(orderUpdate);
                 case "CANCELED" -> handleCanceledType(orderUpdate);
-                default -> log.info("[ORDER-UPDATE] 알 수 없는 타입: {}", orderUpdate.currentExecutionType());
             }
         }
     }
@@ -120,11 +119,8 @@ public class UserEventProcessor implements UserEventListener {
             return;
         }
 
-        BigDecimal estimatedAvgBuyPrice = tradingProperties.scalePrice(
-                tradingProperties.divide(
-                        new BigDecimal(update.orderPrice()),
-                        tradingProperties.risk().targetMultiplier()
-                )
+        BigDecimal estimatedAvgBuyPrice = props.scalePrice(
+                props.divide(new BigDecimal(update.orderPrice()), props.risk().targetMultiplier())
         );
 
         OrderInfo info = new OrderInfo(
@@ -139,16 +135,16 @@ public class UserEventProcessor implements UserEventListener {
 
     private void logNewBuyState(OrderUpdate update) {
         log.info("🟢 [NEW-BUY] 신규 매수 주문 | 가격: {}  | 수량: {} | 주문번호: {}",
-                tradingProperties.scalePrice(new BigDecimal(update.orderPrice())),
-                tradingProperties.scaleQty(new BigDecimal(update.orderQty())),
+                props.scalePrice(new BigDecimal(update.orderPrice())),
+                props.scaleQty(new BigDecimal(update.orderQty())),
                 update.orderId()
         );
     }
 
     private void logNewSellState(OrderUpdate update) {
         log.info("🔴 [NEW-SELL] 신규 매도 주문 | 가격: {} | 수량: {} | 주문번호: {}",
-                tradingProperties.scalePrice(new BigDecimal(update.orderPrice())),
-                tradingProperties.scaleQty(new BigDecimal(update.orderQty())),
+                props.scalePrice(new BigDecimal(update.orderPrice())),
+                props.scaleQty(new BigDecimal(update.orderQty())),
                 update.orderId()
         );
     }
@@ -174,7 +170,7 @@ public class UserEventProcessor implements UserEventListener {
         BigDecimal executedUsdValue = new BigDecimal(update.lastQuoteAssetTransactedQty());
         positionManager.addPosition(executedQty, executedUsdValue);
 
-        if (update.currentOrderStatus().equals("FILLED")) {
+        if ("FILLED".equals(update.currentOrderStatus())) {
             orderManager.removeBuyOrder(update.orderId());
             rateLimitManager.onOrderFilled();
         }
@@ -187,7 +183,7 @@ public class UserEventProcessor implements UserEventListener {
     }
 
     private void handleTradeSellState(OrderUpdate update) {
-        if (update.currentOrderStatus().equals("FILLED")) {
+        if ("FILLED".equals(update.currentOrderStatus())) {
             orderManager.removeSellOrder(update.orderId());
             rateLimitManager.onOrderFilled();
         }
@@ -195,16 +191,16 @@ public class UserEventProcessor implements UserEventListener {
 
     private void logTradeBuyState(OrderUpdate update) {
         log.info("🟩 [TRADE-BUY] 매수 주문 체결 | 가격: {}  | 수량: {} | 주문번호: {}",
-                tradingProperties.scalePrice(new BigDecimal(update.lastExecutedPrice())),
-                tradingProperties.scaleQty(new BigDecimal(update.lastExecutedQty())),
+                props.scalePrice(new BigDecimal(update.lastExecutedPrice())),
+                props.scaleQty(new BigDecimal(update.lastExecutedQty())),
                 update.orderId()
         );
     }
 
     private void logTradeSellState(OrderUpdate update) {
         log.info("🟥 [TRADE-SELL] 매도 주문 체결 | 가격: {} | 수량: {} | 주문번호: {}",
-                tradingProperties.scalePrice(new BigDecimal(update.lastExecutedPrice())),
-                tradingProperties.scaleQty(new BigDecimal(update.lastExecutedQty())),
+                props.scalePrice(new BigDecimal(update.lastExecutedPrice())),
+                props.scaleQty(new BigDecimal(update.lastExecutedQty())),
                 update.orderId()
         );
     }
