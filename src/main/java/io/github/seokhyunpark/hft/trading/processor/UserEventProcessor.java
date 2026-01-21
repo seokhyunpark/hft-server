@@ -134,18 +134,18 @@ public class UserEventProcessor implements UserEventListener {
     }
 
     private void logNewBuyState(OrderUpdate update) {
-        log.info("🟢 [NEW-BUY] 신규 매수 주문 | 가격: {}  | 수량: {} | 주문번호: {}",
+        log.info("🟢[NEW-BUY] ID: {} | PRICE: {} | QTY: {}",
+                update.orderId(),
                 props.scalePrice(new BigDecimal(update.orderPrice())),
-                props.scaleQty(new BigDecimal(update.orderQty())),
-                update.orderId()
+                props.scaleQty(new BigDecimal(update.orderQty()))
         );
     }
 
     private void logNewSellState(OrderUpdate update) {
-        log.info("🔴 [NEW-SELL] 신규 매도 주문 | 가격: {} | 수량: {} | 주문번호: {}",
+        log.info("🔴[NEW-SELL] ID: {} | PRICE: {} | QTY: {}",
+                update.orderId(),
                 props.scalePrice(new BigDecimal(update.orderPrice())),
-                props.scaleQty(new BigDecimal(update.orderQty())),
-                update.orderId()
+                props.scaleQty(new BigDecimal(update.orderQty()))
         );
     }
 
@@ -190,18 +190,18 @@ public class UserEventProcessor implements UserEventListener {
     }
 
     private void logTradeBuyState(OrderUpdate update) {
-        log.info("🟩 [TRADE-BUY] 매수 주문 체결 | 가격: {}  | 수량: {} | 주문번호: {}",
+        log.info("🟩[TRADE-BUY] ID: {} | PRICE: {} | QTY: {}",
+                update.orderId(),
                 props.scalePrice(new BigDecimal(update.lastExecutedPrice())),
-                props.scaleQty(new BigDecimal(update.lastExecutedQty())),
-                update.orderId()
+                props.scaleQty(new BigDecimal(update.lastExecutedQty()))
         );
     }
 
     private void logTradeSellState(OrderUpdate update) {
-        log.info("🟥 [TRADE-SELL] 매도 주문 체결 | 가격: {} | 수량: {} | 주문번호: {}",
+        log.info("🟥[TRADE-SELL] ID: {} | PRICE: {} | QTY: {}",
+                update.orderId(),
                 props.scalePrice(new BigDecimal(update.lastExecutedPrice())),
-                props.scaleQty(new BigDecimal(update.lastExecutedQty())),
-                update.orderId()
+                props.scaleQty(new BigDecimal(update.lastExecutedQty()))
         );
     }
 
@@ -230,10 +230,10 @@ public class UserEventProcessor implements UserEventListener {
     }
 
     private void logCanceledBuyState(OrderUpdate update) {
-        log.info("🟧 [CANCELED-BUY] 매수 주문 취소 | 주문번호: {}", update.orderId());
+        log.info("🟧[CANCELED-BUY] ID: {}", update.orderId());
     }
 
     private void logCanceledSellState(OrderUpdate update) {
-        log.info("🟧 [CANCELED-SELL] 매도 주문 취소 | 주문번호: {}", update.orderId());
+        log.info("🟧[CANCELED-SELL] ID: {}", update.orderId());
     }
 }
