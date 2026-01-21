@@ -27,59 +27,33 @@ public class MarketEventProcessor implements MarketEventListener {
 
     @Override
     public void onPartialBookDepthReceived(PartialBookDepth depth) {
-        if (depth == null || depth.bids() == null || depth.bids().isEmpty()) {
+        if (depth == null) {
+            return;
+        }
+        tradingStrategy.updateBestAskPrice(depth);
+
+        manageBuyOrdersCapacity();
+        manageSellOrdersCapacity();
+
+        NewOrderParams buyParams = tradingStrategy.calculateBuyOrderParams(depth);
+        manageConflictingBuyOrder(buyParams);
+        if (isBuyOrderInvalid(buyParams) || !hasExecutionCapacity(buyParams)) {
             return;
         }
 
-        // 매도 1호가 가격 업데이트
-        tradingStrategy.updateBestAskPrice(depth);
+        executeBuyOrder(buyParams);
+    }
 
-        // Sell Orders 개수 관리
-        manageSellOrders();
-
-        // Buy Orders 개수 관리
+    private void manageBuyOrdersCapacity() {
         if (orderManager.isBuyOrdersFull()) {
             OrderInfo info = orderManager.getOldestBuyOrder();
             if (info != null) {
                 orderExecutor.cancelBuyAsync(info);
             }
         }
-
-        NewOrderParams buyParams = tradingStrategy.calculateBuyOrderParams(depth);
-        OrderInfo conflictingBuyOrder = orderManager.findConflictingBuyOrder(buyParams.price());
-        if (conflictingBuyOrder != null) {
-            orderExecutor.cancelBuyAsync(conflictingBuyOrder);
-        }
-
-        // 중복된 가격 확인
-        if (buyParams.isInvalid()
-                || orderManager.hasBuyOrderAt(buyParams.price())
-                || orderManager.conflictsWithSellOrders(buyParams.price())) {
-            return;
-        }
-
-        // Rate Limit 확인
-        if (!rateLimitManager.hasRateLimitCapacity()) {
-            return;
-        }
-
-        // USD 잔고 확인
-        if (!quoteAssetManager.hasQuoteBalanceFor(buyParams.getUsdValue())) {
-            return;
-        }
-
-        // Open Orders 개수 확인
-        if (!orderManager.hasOpenOrderCapacity()) {
-            return;
-        }
-
-        // 매수 주문 (상태 낙관적 업데이트)
-        rateLimitManager.onOrderPlaced();
-        quoteAssetManager.deductQuoteBalance(buyParams.getUsdValue());
-        orderExecutor.buyAsync(buyParams);
     }
 
-    private void manageSellOrders() {
+    private void manageSellOrdersCapacity() {
         if (orderManager.isSellOrdersFull()) {
             OrderInfo deleteInfo = orderManager.getHighestPriceSellOrder();
             if (deleteInfo != null) {
@@ -97,5 +71,30 @@ public class MarketEventProcessor implements MarketEventListener {
                 orderExecutor.restoreSellAsync(restoreInfo);
             }
         }
+    }
+
+    private void manageConflictingBuyOrder(NewOrderParams params) {
+        OrderInfo info = orderManager.findConflictingBuyOrder(params.price());
+        if (info != null) {
+            orderExecutor.cancelBuyAsync(info);
+        }
+    }
+
+    private boolean isBuyOrderInvalid(NewOrderParams params) {
+        return params.isInvalid()
+                || orderManager.hasBuyOrderAt(params.price())
+                || orderManager.conflictsWithSellOrders(params.price());
+    }
+
+    private boolean hasExecutionCapacity(NewOrderParams params) {
+        return rateLimitManager.hasRateLimitCapacity()
+                && orderManager.hasOpenOrderCapacity()
+                && quoteAssetManager.hasQuoteBalanceFor(params.getUsdValue());
+    }
+
+    private void executeBuyOrder(NewOrderParams params) {
+        rateLimitManager.onOrderPlaced();
+        quoteAssetManager.deductQuoteBalance(params.getUsdValue());
+        orderExecutor.buyAsync(params);
     }
 }
