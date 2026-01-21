@@ -1,4 +1,4 @@
-package io.github.seokhyunpark.hft.trading.core;
+package io.github.seokhyunpark.hft.trading.processor;
 
 import java.math.BigDecimal;
 
@@ -10,8 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import io.github.seokhyunpark.hft.exchange.dto.stream.AccountUpdate;
 import io.github.seokhyunpark.hft.exchange.dto.stream.BalanceUpdate;
 import io.github.seokhyunpark.hft.exchange.dto.stream.OrderUpdate;
-import io.github.seokhyunpark.hft.exchange.dto.stream.PartialBookDepth;
-import io.github.seokhyunpark.hft.exchange.listener.MarketEventListener;
 import io.github.seokhyunpark.hft.exchange.listener.UserEventListener;
 import io.github.seokhyunpark.hft.trading.config.TradingProperties;
 import io.github.seokhyunpark.hft.trading.dto.NewOrderParams;
@@ -27,7 +25,7 @@ import io.github.seokhyunpark.hft.trading.strategy.TradingStrategy;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TradingCore implements MarketEventListener, UserEventListener {
+public class UserEventProcessor implements UserEventListener {
     private final TradingStrategy tradingStrategy;
     private final QuoteAssetManager quoteAssetManager;
     private final OrderManager orderManager;
@@ -36,66 +34,6 @@ public class TradingCore implements MarketEventListener, UserEventListener {
     private final TradingProperties tradingProperties;
     private final PositionManager positionManager;
 
-    // ----------------------------------------------------------------------------------------------------
-    // Market Event
-    // ----------------------------------------------------------------------------------------------------
-    @Override
-    public void onPartialBookDepthReceived(PartialBookDepth depth) {
-        if (depth == null || depth.bids() == null || depth.bids().isEmpty()) {
-            return;
-        }
-
-        // 매도 1호가 가격 업데이트
-        tradingStrategy.updateBestAskPrice(depth);
-
-        // Sell Orders 개수 관리
-        manageSellOrders();
-
-        // Buy Orders 개수 관리
-        if (orderManager.isBuyOrdersFull()) {
-            OrderInfo info = orderManager.getOldestBuyOrder();
-            if (info != null) {
-                orderExecutor.cancelBuyAsync(info);
-            }
-        }
-
-        NewOrderParams buyParams = tradingStrategy.calculateBuyOrderParams(depth);
-        OrderInfo conflictingBuyOrder = orderManager.findConflictingBuyOrder(buyParams.price());
-        if (conflictingBuyOrder != null) {
-            orderExecutor.cancelBuyAsync(conflictingBuyOrder);
-        }
-
-        // 중복된 가격 확인
-        if (buyParams.isInvalid()
-                || orderManager.hasBuyOrderAt(buyParams.price())
-                || orderManager.conflictsWithSellOrders(buyParams.price())) {
-            return;
-        }
-
-        // Rate Limit 확인
-        if (!rateLimitManager.hasRateLimitCapacity()) {
-            return;
-        }
-
-        // USD 잔고 확인
-        if (!quoteAssetManager.hasQuoteBalanceFor(buyParams.getUsdValue())) {
-            return;
-        }
-
-        // Open Orders 개수 확인
-        if (!orderManager.hasOpenOrderCapacity()) {
-            return;
-        }
-
-        // 매수 주문 (상태 낙관적 업데이트)
-        rateLimitManager.onOrderPlaced();
-        quoteAssetManager.deductQuoteBalance(buyParams.getUsdValue());
-        orderExecutor.buyAsync(buyParams);
-    }
-
-    // ----------------------------------------------------------------------------------------------------
-    // User Event
-    // ----------------------------------------------------------------------------------------------------
     @Override
     public void onAccountUpdateReceived(AccountUpdate accountUpdate) {
         if (accountUpdate == null || accountUpdate.eventType() == null || accountUpdate.balances() == null) {
@@ -142,26 +80,6 @@ public class TradingCore implements MarketEventListener, UserEventListener {
                 case "TRADE" -> handleTradeType(orderUpdate);
                 case "CANCELED" -> handleCanceledType(orderUpdate);
                 default -> log.info("[ORDER-UPDATE] 알 수 없는 타입: {}", orderUpdate.currentExecutionType());
-            }
-        }
-    }
-
-    private void manageSellOrders() {
-        if (orderManager.isSellOrdersFull()) {
-            OrderInfo deleteInfo = orderManager.getHighestPriceSellOrder();
-            if (deleteInfo != null) {
-                orderExecutor.cancelSellAsync(deleteInfo);
-            }
-        } else if (orderManager.isSellOrdersRestorable()) {
-            if (!orderManager.hasCanceledOrders()) {
-                return;
-            }
-            if (!rateLimitManager.hasRateLimitCapacity()) {
-                return;
-            }
-            OrderInfo restoreInfo = orderManager.pollLowestPriceCanceledOrder();
-            if (restoreInfo != null) {
-                orderExecutor.restoreSellAsync(restoreInfo);
             }
         }
     }
