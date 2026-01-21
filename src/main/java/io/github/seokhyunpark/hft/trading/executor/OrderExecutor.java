@@ -26,19 +26,19 @@ import io.github.seokhyunpark.hft.trading.strategy.TradingStrategy;
 @RequiredArgsConstructor
 public class OrderExecutor {
     private final BinanceClient binanceClient;
-    private final PositionManager positionManager;
+    private final TradingProperties props;
     private final OrderManager orderManager;
+    private final PositionManager positionManager;
     private final RateLimitManager rateLimitManager;
-    private final TradingProperties tradingProperties;
     private final TradingStrategy tradingStrategy;
 
     @Async("buyOrderExecutor")
     public void buyAsync(NewOrderParams params) {
         try {
             ResponseEntity<NewOrderResponse> responseEntity = binanceClient.buyLimitMaker(
-                    tradingProperties.symbol(),
-                    tradingProperties.scaleQty(params.qty()).toPlainString(),
-                    tradingProperties.scalePrice(params.price()).toPlainString()
+                    props.symbol(),
+                    props.scaleQty(params.qty()).toPlainString(),
+                    props.scalePrice(params.price()).toPlainString()
             );
             updateRateLimit(responseEntity);
 
@@ -86,9 +86,9 @@ public class OrderExecutor {
     public void sellAsync(NewOrderParams params, PositionInfo pulledInfo) {
         try {
             ResponseEntity<NewOrderResponse> responseEntity = binanceClient.sellLimitMaker(
-                    tradingProperties.symbol(),
-                    tradingProperties.scaleQty(params.qty()).toPlainString(),
-                    tradingProperties.scalePrice(params.price()).toPlainString()
+                    props.symbol(),
+                    props.scaleQty(params.qty()).toPlainString(),
+                    props.scalePrice(params.price()).toPlainString()
             );
             updateRateLimit(responseEntity);
 
@@ -99,8 +99,8 @@ public class OrderExecutor {
                         response.symbol(),
                         params.qty().toPlainString(),
                         params.price().toPlainString(),
-                        tradingProperties.scalePrice(
-                                tradingProperties.divide(pulledInfo.totalUsdValue(), pulledInfo.totalQty())
+                        props.scalePrice(
+                                props.divide(pulledInfo.totalUsdValue(), pulledInfo.totalQty())
                         )
                 );
                 orderManager.addSellOrder(info);

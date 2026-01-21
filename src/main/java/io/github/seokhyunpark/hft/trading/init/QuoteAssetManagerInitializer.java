@@ -20,14 +20,14 @@ import io.github.seokhyunpark.hft.trading.manager.QuoteAssetManager;
 @Component
 @RequiredArgsConstructor
 public class QuoteAssetManagerInitializer {
-    private final BinanceClient binanceClient;
-    private final QuoteAssetManager quoteAssetManager;
-    private final TradingProperties tradingProperties;
     private final ConfigurableApplicationContext context;
+    private final BinanceClient binanceClient;
+    private final TradingProperties props;
+    private final QuoteAssetManager quoteAssetManager;
 
     @EventListener(ApplicationReadyEvent.class)
     public void initialize() {
-        Balance quoteBalance = binanceClient.getBalance(tradingProperties.quoteAsset());
+        Balance quoteBalance = binanceClient.getBalance(props.quoteAsset());
         if (quoteBalance == null || quoteBalance.free() == null) {
             int exitCode = SpringApplication.exit(context, () -> 1);
             System.exit(exitCode);

@@ -15,12 +15,12 @@ import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
 @Component
 @RequiredArgsConstructor
 public class PositionManager {
-    private final TradingProperties properties;
+    private final TradingProperties props;
 
     private final AtomicReference<PositionInfo> position = new AtomicReference<>(new PositionInfo());
 
     public void addPosition(BigDecimal qty, BigDecimal usdValue) {
-        BigDecimal cleanQty = properties.scaleQty(qty);
+        BigDecimal cleanQty = props.scaleQty(qty);
         PositionInfo added = position.updateAndGet(cur -> cur.add(cleanQty, usdValue));
         log.debug("[POSITION] 증가: {}", added);
     }
@@ -37,6 +37,6 @@ public class PositionManager {
     }
 
     public boolean isSellable() {
-        return position.get().totalUsdValue().compareTo(properties.minOrderSize()) >= 0;
+        return position.get().totalUsdValue().compareTo(props.minOrderSize()) >= 0;
     }
 }

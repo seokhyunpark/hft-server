@@ -22,7 +22,7 @@ import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
 @Component
 @RequiredArgsConstructor
 public class OrderManager {
-    private final TradingProperties tradingProperties;
+    private final TradingProperties props;
 
     private final Map<Long, OrderInfo> buyOrders = new ConcurrentHashMap<>();
     private final Map<Long, OrderInfo> sellOrders = new ConcurrentHashMap<>();
@@ -43,7 +43,7 @@ public class OrderManager {
     // 전체 주문 상태 (Global State)
     // ----------------------------------------------------------------------------------------------------
     public boolean hasOpenOrderCapacity() {
-        return buyOrders.size() + sellOrders.size() < tradingProperties.risk().maxOpenOrders();
+        return buyOrders.size() + sellOrders.size() < props.risk().maxOpenOrders();
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -63,7 +63,7 @@ public class OrderManager {
     }
 
     public boolean isBuyOrdersFull() {
-        return buyOrders.size() > tradingProperties.risk().maxBuyOrders();
+        return buyOrders.size() > props.risk().maxBuyOrders();
     }
 
     public OrderInfo getOldestBuyOrder() {
@@ -89,11 +89,11 @@ public class OrderManager {
     }
 
     public boolean isSellOrdersFull() {
-        return sellOrders.size() > tradingProperties.risk().maxSellOrders();
+        return sellOrders.size() > props.risk().maxSellOrders();
     }
 
     public boolean isSellOrdersRestorable() {
-        return sellOrders.size() < tradingProperties.risk().minSellOrders();
+        return sellOrders.size() < props.risk().minSellOrders();
     }
 
     public OrderInfo getHighestPriceSellOrder() {
@@ -145,7 +145,7 @@ public class OrderManager {
 
     private boolean isConflicting(BigDecimal existingPrice, BigDecimal newPrice) {
         BigDecimal priceDifference = existingPrice.subtract(newPrice).abs();
-        BigDecimal priceLimit = existingPrice.multiply(tradingProperties.risk().priceConflictToleranceRate());
+        BigDecimal priceLimit = existingPrice.multiply(props.risk().priceConflictToleranceRate());
         return priceDifference.compareTo(priceLimit) < 0;
     }
 }

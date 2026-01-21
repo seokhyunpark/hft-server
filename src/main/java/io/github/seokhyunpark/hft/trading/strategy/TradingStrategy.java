@@ -20,7 +20,7 @@ import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
 @Component
 @RequiredArgsConstructor
 public class TradingStrategy {
-    private final TradingProperties tradingProperties;
+    private final TradingProperties props;
 
     private final AtomicReference<BigDecimal> latestBestAskPrice = new AtomicReference<>(BigDecimal.ZERO);
 
@@ -49,18 +49,18 @@ public class TradingStrategy {
         BigDecimal qty = new BigDecimal(bid.getLast());
         BigDecimal usd = price.multiply(qty);
 
-        return usd.compareTo(tradingProperties.risk().buyWallThresholdUsd()) >= 0;
+        return usd.compareTo(props.risk().buyWallThresholdUsd()) >= 0;
     }
 
     private BigDecimal applyPriceOffset(List<String> bid) {
         BigDecimal price = new BigDecimal(bid.getFirst());
-        BigDecimal appliedPrice = price.add(tradingProperties.priceTickSize());
-        return tradingProperties.scalePrice(appliedPrice);
+        BigDecimal appliedPrice = price.add(props.priceTickSize());
+        return props.scalePrice(appliedPrice);
     }
 
     private BigDecimal calculateBuyQty(BigDecimal price) {
-        return tradingProperties.minOrderSize().divide(
-                price, tradingProperties.qtyTickSize().scale(), RoundingMode.CEILING
+        return props.minOrderSize().divide(
+                price, props.qtyTickSize().scale(), RoundingMode.CEILING
         );
     }
 
@@ -72,21 +72,21 @@ public class TradingStrategy {
             return;
         }
         BigDecimal lowestAskPrice = new BigDecimal(depth.asks().getFirst().getFirst());
-        BigDecimal bestAskPrice = lowestAskPrice.subtract(tradingProperties.priceTickSize());
-        BigDecimal scaledPrice = tradingProperties.scalePrice(bestAskPrice);
+        BigDecimal bestAskPrice = lowestAskPrice.subtract(props.priceTickSize());
+        BigDecimal scaledPrice = props.scalePrice(bestAskPrice);
         latestBestAskPrice.set(scaledPrice);
     }
 
     public NewOrderParams calculateSellOrderParams(PositionInfo info) {
-        return calculateSellOrderParams(info.totalQty(), info.getAvgPrice(tradingProperties.priceTickSize().scale()));
+        return calculateSellOrderParams(info.totalQty(), info.getAvgPrice(props.priceTickSize().scale()));
     }
 
     public NewOrderParams calculateSellOrderParams(BigDecimal qty, BigDecimal avgBuyPrice) {
-        BigDecimal targetAskPrice = avgBuyPrice.multiply(tradingProperties.risk().targetMultiplier());
+        BigDecimal targetAskPrice = avgBuyPrice.multiply(props.risk().targetMultiplier());
         BigDecimal bestAskPrice = targetAskPrice.max(latestBestAskPrice.get());
 
-        BigDecimal scaledPrice = tradingProperties.scalePrice(bestAskPrice);
-        BigDecimal scaledQty = tradingProperties.scaleQty(qty);
+        BigDecimal scaledPrice = props.scalePrice(bestAskPrice);
+        BigDecimal scaledQty = props.scaleQty(qty);
 
         return new NewOrderParams(scaledQty, scaledPrice);
     }
