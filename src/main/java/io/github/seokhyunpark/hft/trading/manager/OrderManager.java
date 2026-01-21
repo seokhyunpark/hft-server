@@ -46,10 +46,17 @@ public class OrderManager {
         return buyOrders.size() + sellOrders.size() < props.risk().maxOpenOrders();
     }
 
+    private boolean isRecentlyClosedOrders(Long orderId) {
+        return recentlyClosedOrders.contains(orderId);
+    }
+
     // ----------------------------------------------------------------------------------------------------
     // 매수 주문 관리 (Buy Orders)
     // ----------------------------------------------------------------------------------------------------
     public void addBuyOrder(OrderInfo orderInfo) {
+        if (isRecentlyClosedOrders(orderInfo.orderId())) {
+            return;
+        }
         buyOrders.put(orderInfo.orderId(), orderInfo);
     }
 
@@ -81,6 +88,9 @@ public class OrderManager {
     // 매도 주문 관리 (Sell Orders)
     // ----------------------------------------------------------------------------------------------------
     public void addSellOrder(OrderInfo orderInfo) {
+        if (isRecentlyClosedOrders(orderInfo.orderId())) {
+            return;
+        }
         sellOrders.put(orderInfo.orderId(), orderInfo);
     }
 
