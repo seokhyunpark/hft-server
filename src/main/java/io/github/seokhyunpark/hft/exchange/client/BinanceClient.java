@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -183,6 +184,8 @@ public class BinanceClient {
                     .uri(uri)
                     .retrieve()
                     .toEntity(responseType);
+        } catch (HttpClientErrorException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

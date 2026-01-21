@@ -5,6 +5,9 @@ import java.math.BigDecimal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +28,7 @@ import io.github.seokhyunpark.hft.trading.strategy.TradingStrategy;
 @Component
 @RequiredArgsConstructor
 public class OrderExecutor {
+    private final ObjectMapper objectMapper;
     private final BinanceClient binanceClient;
     private final TradingProperties props;
     private final OrderManager orderManager;
@@ -52,10 +56,12 @@ public class OrderExecutor {
                         null
                 );
                 orderManager.addBuyOrder(info);
-                log.debug("[NEW-BUY] 신규 매수 주문 요청 성공 | 주문번호: {}", info.orderId());
+                log.debug("[NEW-BUY] OK | ID: {}", info.orderId());
             }
+        } catch (HttpClientErrorException e) {
+            log.warn("⚠️[NEW-BUY] FAIL | REASON: {}", extractErrorMessage(e));
         } catch (Exception e) {
-            log.error("[NEW-BUY] 신규 매수 주문 요청 실패 | 에러 메시지: {}", e.getMessage());
+            log.error("[NEW-BUY] ERROR | MESSAGE: {}", e.getMessage());
         }
     }
 
@@ -63,7 +69,7 @@ public class OrderExecutor {
     public void cancelBuyAsync(OrderInfo info) {
         try {
             if (!orderManager.containsBuyOrder(info.orderId())) {
-                log.debug("[CANCEL-BUY] 이미 체결 또는 취소된 매수 주문 | 주문번호: {}", info.orderId());
+                log.debug("[CANCEL-BUY] SKIP | ID: {}", info.orderId());
                 return;
             }
             orderManager.removeBuyOrder(info.orderId());
@@ -75,10 +81,12 @@ public class OrderExecutor {
 
             CancelOrderResponse response = responseEntity.getBody();
             if (response != null && response.orderId() != null) {
-                log.debug("[CANCEL-BUY] 매수 주문 취소 요청 성공 | 주문번호: {}", info.orderId());
+                log.debug("[CANCEL-BUY] OK | ID: {}", info.orderId());
             }
+        } catch (HttpClientErrorException e) {
+            log.warn("⚠️[CANCEL-BUY] FAIL | ID: {} | REASON: {}", info.orderId(), extractErrorMessage(e));
         } catch (Exception e) {
-            log.error("[CANCEL-BUY] 매수 주문 취소 요청 실패 | 주문번호: : {}", info.orderId());
+            log.error("[CANCEL-BUY] ERROR | ID: {} | MESSAGE: {}", info.orderId(), e.getMessage());
         }
     }
 
@@ -99,16 +107,17 @@ public class OrderExecutor {
                         response.symbol(),
                         params.qty().toPlainString(),
                         params.price().toPlainString(),
-                        props.scalePrice(
-                                props.divide(pulledInfo.totalUsdValue(), pulledInfo.totalQty())
-                        )
+                        props.scalePrice(props.divide(pulledInfo.totalUsdValue(), pulledInfo.totalQty()))
                 );
                 orderManager.addSellOrder(info);
-                log.debug("[NEW-SELL] 신규 매도 주문 요청 성공 | 주문번호: {}", info.orderId());
+                log.debug("[NEW-SELL] OK | ID: {}", info.orderId());
             }
+        } catch (HttpClientErrorException e) {
+            positionManager.restorePosition(pulledInfo);
+            log.warn("⚠️[NEW-SELL] FAIL | REASON: {}", extractErrorMessage(e));
         } catch (Exception e) {
             positionManager.restorePosition(pulledInfo);
-            log.error("[NEW-SELL] 신규 매도 주문 요청 실패 | 에러 메시지: {}", e.getMessage());
+            log.error("[NEW-SELL] ERROR | MESSAGE: {}", e.getMessage());
         }
     }
 
@@ -136,11 +145,14 @@ public class OrderExecutor {
                         info.avgBuyPrice()
                 );
                 orderManager.addSellOrder(newInfo);
-                log.info("[RESTORE-SELL] 매도 주문 복구 성공 | 기존ID: {} -> 신규ID: {}", info.orderId(), newInfo.orderId());
+                log.debug("[RESTORE-SELL] OK | ID: {}", newInfo.orderId());
             }
+        } catch (HttpClientErrorException e) {
+            orderManager.addCanceledOrder(info);
+            log.warn("⚠️[RESTORE-SELL] FAIL | REASON: {}", extractErrorMessage(e));
         } catch (Exception e) {
             orderManager.addCanceledOrder(info);
-            log.error("[RESTORE-SELL] 매도 주문 복구 실패 | 에러 메시지: {}", e.getMessage());
+            log.error("[RESTORE-SELL] ERROR | MESSAGE: {}", e.getMessage());
         }
     }
 
@@ -148,7 +160,7 @@ public class OrderExecutor {
     public void cancelSellAsync(OrderInfo info) {
         try {
             if (!orderManager.containsSellOrder(info.orderId())) {
-                log.debug("[CANCEL-SELL] 이미 체결 또는 취소된 매도 주문 | 주문번호: {}", info.orderId());
+                log.debug("[CANCEL-SELL] SKIP | ID: {}", info.orderId());
                 return;
             }
             orderManager.removeSellOrder(info.orderId());
@@ -161,10 +173,12 @@ public class OrderExecutor {
             CancelOrderResponse response = responseEntity.getBody();
             if (response != null && response.orderId() != null) {
                 orderManager.addCanceledOrder(info);
-                log.debug("[CANCEL-SELL] 매도 주문 취소 요청 성공 | 주문번호: {}", info.orderId());
+                log.debug("[CANCEL-SELL] OK | ID: {}", info.orderId());
             }
+        } catch (HttpClientErrorException e) {
+            log.warn("⚠️[CANCEL-SELL] FAIL | ID: {} | REASON: {}", info.orderId(), extractErrorMessage(e));
         } catch (Exception e) {
-            log.error("[CANCEL-SELL] 매도 주문 취소 요청 실패 | 주문번호: : {}", info.orderId());
+            log.error("[CANCEL-SELL] ERROR | ID: {} | MESSAGE: {}", info.orderId(), e.getMessage());
         }
     }
 
@@ -178,6 +192,15 @@ public class OrderExecutor {
             int count = Integer.parseInt(rawCount);
             rateLimitManager.syncOrderCount(count);
         }
+    }
 
+    private String extractErrorMessage(HttpClientErrorException e) {
+        try {
+            return objectMapper.readTree(e.getResponseBodyAsString())
+                    .path("msg")
+                    .asText(e.getResponseBodyAsString());
+        } catch (Exception err) {
+            return e.getMessage();
+        }
     }
 }
