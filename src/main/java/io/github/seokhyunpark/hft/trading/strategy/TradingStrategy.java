@@ -53,26 +53,28 @@ public class TradingStrategy {
     }
 
     private BigDecimal applyPriceOffset(List<String> bid) {
-        BigDecimal rawPrice = new BigDecimal(bid.getFirst()).add(tradingProperties.priceTickSize());
-        return rawPrice.setScale(tradingProperties.priceTickSize().scale(), RoundingMode.FLOOR);
+        BigDecimal price = new BigDecimal(bid.getFirst());
+        BigDecimal appliedPrice = price.add(tradingProperties.priceTickSize());
+        return tradingProperties.scalePrice(appliedPrice);
     }
 
     private BigDecimal calculateBuyQty(BigDecimal price) {
-        if (price.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO;
-        }
-        return tradingProperties.minOrderSize().divide(price, tradingProperties.qtyTickSize().scale(), RoundingMode.CEILING);
+        return tradingProperties.minOrderSize().divide(
+                price, tradingProperties.qtyTickSize().scale(), RoundingMode.CEILING
+        );
     }
 
     // ----------------------------------------------------------------------------------------------------
     // 매도 주문 전략
     // ----------------------------------------------------------------------------------------------------
     public void updateBestAskPrice(PartialBookDepth depth) {
-        if (depth != null && depth.asks() != null && !depth.asks().isEmpty()) {
-            BigDecimal lowestAskPrice = new BigDecimal(depth.asks().getFirst().getFirst());
-            BigDecimal bestAskPrice = lowestAskPrice.subtract(tradingProperties.priceTickSize());
-            latestBestAskPrice.set(bestAskPrice);
+        if (depth == null || depth.asks() == null || !depth.asks().isEmpty()) {
+            return;
         }
+        BigDecimal lowestAskPrice = new BigDecimal(depth.asks().getFirst().getFirst());
+        BigDecimal bestAskPrice = lowestAskPrice.subtract(tradingProperties.priceTickSize());
+        BigDecimal scaledPrice = tradingProperties.scalePrice(bestAskPrice);
+        latestBestAskPrice.set(scaledPrice);
     }
 
     public NewOrderParams calculateSellOrderParams(PositionInfo info) {
@@ -84,8 +86,8 @@ public class TradingStrategy {
         BigDecimal bestAskPrice = targetAskPrice.max(latestBestAskPrice.get());
 
         BigDecimal scaledPrice = tradingProperties.scalePrice(bestAskPrice);
-        BigDecimal scaleQty = tradingProperties.scaleQty(qty);
+        BigDecimal scaledQty = tradingProperties.scaleQty(qty);
 
-        return new NewOrderParams(scaleQty, scaledPrice);
+        return new NewOrderParams(scaledQty, scaledPrice);
     }
 }
