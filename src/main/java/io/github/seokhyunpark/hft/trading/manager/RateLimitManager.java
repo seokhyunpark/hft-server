@@ -20,37 +20,24 @@ public class RateLimitManager {
     private final AtomicInteger orderCount = new AtomicInteger(MIN_COUNT);
     private final AtomicLong currentWindowId = new AtomicLong(System.currentTimeMillis() / RESET_WINDOW_MS);
 
-    public int getOrderCount() {
-        return orderCount.get();
-    }
-
-    public boolean hasRateLimitCapacity() {
-        refreshWindow();
-        int currentCount = orderCount.get();
-        return currentCount < (LIMIT - SAFETY_MARGIN);
-    }
-
     public void onOrderPlaced() {
         int count = orderCount.incrementAndGet();
-        log.debug("[LIMIT-LOCAL] 신규 주문 (+1) | 현재 상태: {}/{}", count, LIMIT);
+        log.debug("[RATE-LIMIT-NEW] {}/{}", count, LIMIT);
     }
 
     public void onOrderFilled() {
         int count = orderCount.updateAndGet(current -> Math.max(MIN_COUNT, current - MAKER_FILL_DECREMENT));
-        log.debug("[LIMIT-LOCAL] 주문 체결 (-{}) | 현재 상태: {}/{}", MAKER_FILL_DECREMENT, count, LIMIT);
+        log.debug("[RATE-LIMIT-FILLED] {}/{}", count, LIMIT);
     }
 
-    public void updateOrderCount(String rawCount) {
-        if (rawCount == null || rawCount.isBlank()) {
-            return;
-        }
-        try {
-            int count = Integer.parseInt(rawCount);
-            orderCount.set(count);
-            log.debug("[LIMIT-SERVER] 동기화 완료 | 현재 상태: {}/{}", count, LIMIT);
-        } catch (Exception e) {
-            log.error("[LIMIT-SERVER] 동기화 실패: {}", e.getMessage());
-        }
+    public void syncOrderCount(int count) {
+        orderCount.set(count);
+        log.debug("[RATE-LIMIT-SERVER] {}/{}", count, LIMIT);
+    }
+
+    public boolean hasRateLimitCapacity() {
+        refreshWindow();
+        return orderCount.get() < (LIMIT - SAFETY_MARGIN);
     }
 
     private void refreshWindow() {
@@ -60,7 +47,7 @@ public class RateLimitManager {
         if (newWindowId > lastWindowId) {
             if (currentWindowId.compareAndSet(lastWindowId, newWindowId)) {
                 orderCount.set(0);
-                log.debug("[LIMIT-WINDOW] 상태 초기화 (Window ID: {})", newWindowId);
+                log.debug("[RATE-LIMIT-WINDOW-REFRESH]");
             }
         }
     }

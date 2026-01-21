@@ -172,7 +172,12 @@ public class OrderExecutor {
         if (responseEntity == null) {
             return;
         }
-        String orderCount10s = responseEntity.getHeaders().getFirst("X-MBX-ORDER-COUNT-10s");
-        rateLimitManager.updateOrderCount(orderCount10s);
+
+        String rawCount = responseEntity.getHeaders().getFirst("X-MBX-ORDER-COUNT-10s");
+        if (rawCount != null && rawCount.matches("\\d+")) {
+            int count = Integer.parseInt(rawCount);
+            rateLimitManager.syncOrderCount(count);
+        }
+
     }
 }
