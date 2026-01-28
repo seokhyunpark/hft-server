@@ -1,28 +1,29 @@
 package io.github.seokhyunpark.hft.exchange.service;
 
-import io.github.seokhyunpark.hft.exchange.stream.MarketDataStream;
-import io.github.seokhyunpark.hft.exchange.stream.UserDataStream;
-import io.github.seokhyunpark.hft.exchange.util.SignatureUtil;
-import io.github.seokhyunpark.hft.trading.core.TradingCore;
+import java.net.URI;
+import java.util.concurrent.TimeUnit;
+
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.net.URI;
-import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import io.github.seokhyunpark.hft.exchange.stream.MarketDataStream;
+import io.github.seokhyunpark.hft.exchange.stream.UserDataStream;
+import io.github.seokhyunpark.hft.exchange.util.SignatureUtil;
+import io.github.seokhyunpark.hft.trading.processor.MarketEventProcessor;
+import io.github.seokhyunpark.hft.trading.processor.UserEventProcessor;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExchangeService {
     private final SignatureUtil signatureUtil;
-    private final TradingCore tradingCore;
-
-    private MarketDataStream marketDataStream;
-    private UserDataStream userDataStream;
+    private final MarketEventProcessor marketEventProcessor;
+    private final UserEventProcessor userEventProcessor;
 
     @Value("${hft.websocket.enabled}")
     private boolean websocketEnabled;
@@ -54,7 +55,7 @@ public class ExchangeService {
     private boolean connectUserStream() {
         try {
             URI uri = new URI(userUri);
-            userDataStream = new UserDataStream(uri, tradingCore, apiKey, privateKeyPath, signatureUtil);
+            UserDataStream userDataStream = new UserDataStream(uri, userEventProcessor, apiKey, privateKeyPath, signatureUtil);
 
             boolean connected = userDataStream.connectBlocking();
             if (!connected) {
@@ -79,7 +80,7 @@ public class ExchangeService {
     private void connectMarketStream() {
         try {
             URI uri = new URI(marketUri);
-            marketDataStream = new MarketDataStream(uri, tradingCore);
+            MarketDataStream marketDataStream = new MarketDataStream(uri, marketEventProcessor);
             marketDataStream.connect();
 
         } catch (Exception e) {

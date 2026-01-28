@@ -41,4 +41,5 @@ public record OrderUpdate(
         @JsonProperty("Q") String quoteOrderQty,
         @JsonProperty("W") long workingTime,
         @JsonProperty("V") String selfTradePreventionMode
-) {}
+) {
+}

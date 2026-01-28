@@ -26,4 +26,5 @@ public record GetOrderResponse(
         @JsonProperty("workingTime") long workingTime,
         @JsonProperty("origQuoteOrderQty") String origQuoteOrderQty,
         @JsonProperty("selfTradePreventionMode") String selfTradePreventionMode
-) {}
+) {
+}

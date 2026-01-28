@@ -12,36 +12,28 @@ import lombok.extern.slf4j.Slf4j;
 public class QuoteAssetManager {
     private final AtomicReference<BigDecimal> quoteBalance = new AtomicReference<>(BigDecimal.ZERO);
 
-    public BigDecimal getQuoteBalance() {
-        return quoteBalance.get();
+    public void addQuoteBalance(BigDecimal delta) {
+        if (delta != null) {
+            BigDecimal balance = quoteBalance.updateAndGet(current -> current.add(delta));
+            log.debug("[QUOTE-SERVER-ADD] {}", balance.toPlainString());
+        }
+    }
+
+    public void syncQuoteBalance(BigDecimal amount) {
+        if (amount != null) {
+            quoteBalance.set(amount);
+            log.debug("[QUOTE-SERVER-SYNC] {}", amount.toPlainString());
+        }
+    }
+
+    public void deductQuoteBalance(BigDecimal amount) {
+        if (amount != null) {
+            BigDecimal balance = quoteBalance.updateAndGet(current -> current.subtract(amount));
+            log.debug("[QUOTE-LOCAL-DEDUCT] {}", balance.toPlainString());
+        }
     }
 
     public boolean hasQuoteBalanceFor(BigDecimal amount) {
         return quoteBalance.get().compareTo(amount) >= 0;
-    }
-
-    public void syncQuoteBalance(BigDecimal amount) {
-        if (amount == null) {
-            return;
-        }
-        quoteBalance.set(amount);
-        log.debug("[USD-SERVER] 동기화 완료 | 현재 잔고: {}", amount.toPlainString());
-    }
-
-    public void deductQuoteBalance(BigDecimal amount) {
-        if (amount == null) {
-            return;
-        }
-        BigDecimal balance = quoteBalance.updateAndGet(current -> current.subtract(amount));
-        log.debug("[USD-LOCAL] 주문 비용 선차감 (-{}) | 현재 잔고: {}", amount.toPlainString(), balance.toPlainString());
-    }
-
-    public void addQuoteBalance(BigDecimal delta) {
-        if (delta == null) {
-            return;
-        }
-
-        BigDecimal balance = quoteBalance.updateAndGet(current -> current.add(delta));
-        log.debug("[USD-SERVER] 자산 변동 적용 ({}) | 현재 잔고: {}", delta, balance);
     }
 }

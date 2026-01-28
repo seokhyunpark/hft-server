@@ -11,4 +11,5 @@ public record NewOrderResponse(
         @JsonProperty("orderListId") Long orderListId,
         @JsonProperty("clientOrderId") String clientOrderId,
         @JsonProperty("transactTime") Long transactTime
-) {}
+) {
+}

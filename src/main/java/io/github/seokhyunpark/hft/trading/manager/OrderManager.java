@@ -12,16 +12,17 @@ import java.util.concurrent.PriorityBlockingQueue;
 
 import org.springframework.stereotype.Component;
 
-import io.github.seokhyunpark.hft.trading.config.TradingProperties;
-import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import io.github.seokhyunpark.hft.trading.config.TradingProperties;
+import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class OrderManager {
-    private final TradingProperties tradingProperties;
+    private final TradingProperties props;
 
     private final Map<Long, OrderInfo> buyOrders = new ConcurrentHashMap<>();
     private final Map<Long, OrderInfo> sellOrders = new ConcurrentHashMap<>();
@@ -29,7 +30,7 @@ public class OrderManager {
             2000, Comparator.comparing(OrderInfo::numericPrice)
     );
 
-    private final Set<Long> closedOrders = Collections.synchronizedSet(
+    private final Set<Long> recentlyClosedOrders = Collections.synchronizedSet(
             Collections.newSetFromMap(new LinkedHashMap<>(1000, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(Map.Entry<Long, Boolean> eldest) {
@@ -39,10 +40,108 @@ public class OrderManager {
     );
 
     // ----------------------------------------------------------------------------------------------------
-    // 공통 주문 관리
+    // 전체 주문 상태 (Global State)
     // ----------------------------------------------------------------------------------------------------
     public boolean hasOpenOrderCapacity() {
-        return buyOrders.size() + sellOrders.size() < tradingProperties.risk().maxOpenOrders();
+        return buyOrders.size() + sellOrders.size() < props.risk().maxOpenOrders();
+    }
+
+    private boolean isRecentlyClosedOrders(Long orderId) {
+        return recentlyClosedOrders.contains(orderId);
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // 매수 주문 관리 (Buy Orders)
+    // ----------------------------------------------------------------------------------------------------
+    public void addBuyOrder(OrderInfo orderInfo) {
+        if (isRecentlyClosedOrders(orderInfo.orderId())) {
+            return;
+        }
+        buyOrders.put(orderInfo.orderId(), orderInfo);
+    }
+
+    public boolean containsBuyOrder(long orderId) {
+        return buyOrders.containsKey(orderId);
+    }
+
+    public boolean hasBuyOrderAt(BigDecimal price) {
+        return buyOrders.values().stream()
+                .anyMatch(order -> order.numericPrice().compareTo(price) == 0);
+    }
+
+    public boolean isBuyOrdersFull() {
+        return buyOrders.size() > props.risk().maxBuyOrders();
+    }
+
+    public OrderInfo getOldestBuyOrder() {
+        return buyOrders.values().stream()
+                .min(Comparator.comparingLong(OrderInfo::orderId))
+                .orElse(null);
+    }
+
+    public void removeBuyOrder(long orderId) {
+        recentlyClosedOrders.add(orderId);
+        buyOrders.remove(orderId);
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // 매도 주문 관리 (Sell Orders)
+    // ----------------------------------------------------------------------------------------------------
+    public void addSellOrder(OrderInfo orderInfo) {
+        if (isRecentlyClosedOrders(orderInfo.orderId())) {
+            return;
+        }
+        sellOrders.put(orderInfo.orderId(), orderInfo);
+    }
+
+    public boolean containsSellOrder(long orderId) {
+        return sellOrders.containsKey(orderId);
+    }
+
+    public boolean isSellOrdersFull() {
+        return sellOrders.size() > props.risk().maxSellOrders();
+    }
+
+    public boolean isSellOrdersRestorable() {
+        return sellOrders.size() < props.risk().minSellOrders();
+    }
+
+    public OrderInfo getHighestPriceSellOrder() {
+        return sellOrders.values().stream()
+                .max(Comparator.comparing(OrderInfo::numericPrice))
+                .orElse(null);
+    }
+
+    public void removeSellOrder(long orderId) {
+        recentlyClosedOrders.add(orderId);
+        sellOrders.remove(orderId);
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // 취소된 주문 관리 (Canceled Orders)
+    // ----------------------------------------------------------------------------------------------------
+    public void addCanceledOrder(OrderInfo orderInfo) {
+        canceledOrders.add(orderInfo);
+    }
+
+    public boolean hasCanceledOrders() {
+        return !canceledOrders.isEmpty();
+    }
+
+    public OrderInfo pollLowestPriceCanceledOrder() {
+        return canceledOrders.poll();
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // 가격 충돌 관리
+    // ----------------------------------------------------------------------------------------------------
+    public boolean conflictsWithSellOrders(BigDecimal newPrice) {
+        for (OrderInfo info : sellOrders.values()) {
+            if (isConflicting(info.avgBuyPrice(), newPrice)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public OrderInfo findConflictingBuyOrder(BigDecimal newPrice) {
@@ -54,102 +153,9 @@ public class OrderManager {
         return null;
     }
 
-    public boolean hasConflictingWithHoldings(BigDecimal newPrice) {
-        for (OrderInfo info : sellOrders.values()) {
-            if (isConflicting(info.avgBuyPrice(), newPrice)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private boolean isConflicting(BigDecimal existingPrice, BigDecimal newPrice) {
-        BigDecimal diff = existingPrice.subtract(newPrice).abs();
-        BigDecimal limit = existingPrice.multiply(tradingProperties.risk().priceConflictThreshold());
-        return diff.compareTo(limit) < 0;
-    }
-
-    // ----------------------------------------------------------------------------------------------------
-    // 매수 주문 관리
-    // ----------------------------------------------------------------------------------------------------
-    public void addBuyOrder(OrderInfo orderInfo) {
-        if (closedOrders.contains(orderInfo.orderId())) {
-            log.debug("[CLOSED-BUY] 이미 종료된 매수 주문 재등록 방지 | 주문번호: {}", orderInfo.orderId());
-            return;
-        }
-        buyOrders.put(orderInfo.orderId(), orderInfo);
-    }
-
-    public void removeBuyOrder(long orderId) {
-        closedOrders.add(orderId);
-        buyOrders.remove(orderId);
-    }
-
-    public boolean hasBuyOrderAt(BigDecimal price) {
-        return buyOrders.values().stream()
-                .anyMatch(order -> order.numericPrice().compareTo(price) == 0);
-    }
-
-    public boolean isBuyOrdersFull() {
-        return buyOrders.size() > tradingProperties.risk().buyOrdersLimit();
-    }
-
-    public OrderInfo getOldestBuyOrder() {
-        return buyOrders.values().stream()
-                .min(Comparator.comparingLong(OrderInfo::orderId))
-                .orElse(null);
-    }
-
-    public boolean containsBuyOrder(long orderId) {
-        return buyOrders.containsKey(orderId);
-    }
-
-    // ----------------------------------------------------------------------------------------------------
-    // 매도 주문 관리
-    // ----------------------------------------------------------------------------------------------------
-    public void addSellOrder(OrderInfo orderInfo) {
-        if (closedOrders.contains(orderInfo.orderId())) {
-            log.debug("[CLOSED-SELL] 이미 종료된 매도 주문 재등록 방지 | 주문번호: {}", orderInfo.orderId());
-            return;
-        }
-        sellOrders.put(orderInfo.orderId(), orderInfo);
-    }
-
-    public void removeSellOrder(long orderId) {
-        closedOrders.add(orderId);
-        sellOrders.remove(orderId);
-    }
-
-    public OrderInfo getHighestPriceSellOrder() {
-        return sellOrders.values().stream()
-                .max(Comparator.comparing(OrderInfo::numericPrice))
-                .orElse(null);
-    }
-
-    public boolean containsSellOrder(long orderId) {
-        return sellOrders.containsKey(orderId);
-    }
-
-    public boolean isSellOrdersFull() {
-        return sellOrders.size() > tradingProperties.risk().maxSellOrders();
-    }
-
-    public boolean isSellOrdersRestorable() {
-        return sellOrders.size() < tradingProperties.risk().minSellOrders();
-    }
-
-    // ----------------------------------------------------------------------------------------------------
-    // 취소된 주문 관리
-    // ----------------------------------------------------------------------------------------------------
-    public void addCanceledOrder(OrderInfo orderInfo) {
-        canceledOrders.add(orderInfo);
-    }
-
-    public OrderInfo pollLowestPriceCanceledOrder() {
-        return canceledOrders.poll();
-    }
-
-    public boolean hasCanceledOrders() {
-        return !canceledOrders.isEmpty();
+        BigDecimal priceDifference = existingPrice.subtract(newPrice).abs();
+        BigDecimal priceLimit = existingPrice.multiply(props.risk().priceConflictToleranceRate());
+        return priceDifference.compareTo(priceLimit) < 0;
     }
 }

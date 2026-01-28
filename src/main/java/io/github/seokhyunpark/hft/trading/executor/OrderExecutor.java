@@ -1,43 +1,48 @@
-package io.github.seokhyunpark.hft.trading.service;
+package io.github.seokhyunpark.hft.trading.executor;
 
 import java.math.BigDecimal;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import io.github.seokhyunpark.hft.exchange.client.BinanceClient;
 import io.github.seokhyunpark.hft.exchange.dto.rest.CancelOrderResponse;
 import io.github.seokhyunpark.hft.exchange.dto.rest.NewOrderResponse;
 import io.github.seokhyunpark.hft.trading.config.TradingProperties;
+import io.github.seokhyunpark.hft.trading.dto.NewOrderParams;
 import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
-import io.github.seokhyunpark.hft.trading.dto.OrderParams;
 import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
-import io.github.seokhyunpark.hft.trading.ledger.AcquiredLedger;
 import io.github.seokhyunpark.hft.trading.manager.OrderManager;
+import io.github.seokhyunpark.hft.trading.manager.PositionManager;
 import io.github.seokhyunpark.hft.trading.manager.RateLimitManager;
 import io.github.seokhyunpark.hft.trading.strategy.TradingStrategy;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Service
+@Component
 @RequiredArgsConstructor
-public class OrderService {
+public class OrderExecutor {
+    private final ObjectMapper objectMapper;
     private final BinanceClient binanceClient;
-    private final AcquiredLedger acquiredLedger;
+    private final TradingProperties props;
     private final OrderManager orderManager;
+    private final PositionManager positionManager;
     private final RateLimitManager rateLimitManager;
-    private final TradingProperties tradingProperties;
     private final TradingStrategy tradingStrategy;
 
     @Async("buyOrderExecutor")
-    public void executeBuyOrder(OrderParams params) {
+    public void buyAsync(NewOrderParams params) {
         try {
             ResponseEntity<NewOrderResponse> responseEntity = binanceClient.buyLimitMaker(
-                    tradingProperties.symbol(),
-                    tradingProperties.scaleQty(params.qty()).toPlainString(),
-                    tradingProperties.scalePrice(params.price()).toPlainString()
+                    props.symbol(),
+                    props.scaleQty(params.qty()).toPlainString(),
+                    props.scalePrice(params.price()).toPlainString()
             );
             updateRateLimit(responseEntity);
 
@@ -51,18 +56,20 @@ public class OrderService {
                         null
                 );
                 orderManager.addBuyOrder(info);
-                log.debug("[NEW-BUY] 신규 매수 주문 요청 성공 | 주문번호: {}", info.orderId());
+                log.debug("[NEW-BUY] OK | ID: {}", info.orderId());
             }
+        } catch (HttpClientErrorException e) {
+            log.warn("⚠️[NEW-BUY] FAIL | REASON: {}", extractErrorMessage(e));
         } catch (Exception e) {
-            log.error("[NEW-BUY] 신규 매수 주문 요청 실패 | 에러 메시지: {}", e.getMessage());
+            log.error("[NEW-BUY] ERROR | MESSAGE: {}", e.getMessage());
         }
     }
 
     @Async("buyOrderExecutor")
-    public void executeCancelBuyOrder(OrderInfo info) {
+    public void cancelBuyAsync(OrderInfo info) {
         try {
             if (!orderManager.containsBuyOrder(info.orderId())) {
-                log.debug("[CANCEL-BUY] 이미 체결 또는 취소된 매수 주문 | 주문번호: {}", info.orderId());
+                log.debug("[CANCEL-BUY] SKIP | ID: {}", info.orderId());
                 return;
             }
             orderManager.removeBuyOrder(info.orderId());
@@ -74,20 +81,22 @@ public class OrderService {
 
             CancelOrderResponse response = responseEntity.getBody();
             if (response != null && response.orderId() != null) {
-                log.debug("[CANCEL-BUY] 매수 주문 취소 요청 성공 | 주문번호: {}", info.orderId());
+                log.debug("[CANCEL-BUY] OK | ID: {}", info.orderId());
             }
+        } catch (HttpClientErrorException e) {
+            log.warn("⚠️[CANCEL-BUY] FAIL | ID: {} | REASON: {}", info.orderId(), extractErrorMessage(e));
         } catch (Exception e) {
-            log.error("[CANCEL-BUY] 매수 주문 취소 요청 실패 | 주문번호: : {}", info.orderId());
+            log.error("[CANCEL-BUY] ERROR | ID: {} | MESSAGE: {}", info.orderId(), e.getMessage());
         }
     }
 
     @Async("sellOrderExecutor")
-    public void executeSellOrder(OrderParams params, PositionInfo pulledInfo) {
+    public void sellAsync(NewOrderParams params, PositionInfo pulledInfo) {
         try {
             ResponseEntity<NewOrderResponse> responseEntity = binanceClient.sellLimitMaker(
-                    tradingProperties.symbol(),
-                    tradingProperties.scaleQty(params.qty()).toPlainString(),
-                    tradingProperties.scalePrice(params.price()).toPlainString()
+                    props.symbol(),
+                    props.scaleQty(params.qty()).toPlainString(),
+                    props.scalePrice(params.price()).toPlainString()
             );
             updateRateLimit(responseEntity);
 
@@ -98,25 +107,26 @@ public class OrderService {
                         response.symbol(),
                         params.qty().toPlainString(),
                         params.price().toPlainString(),
-                        tradingProperties.scalePrice(
-                                tradingProperties.divide(pulledInfo.totalUsdValue(), pulledInfo.totalQty())
-                        )
+                        props.scalePrice(props.divide(pulledInfo.totalUsdValue(), pulledInfo.totalQty()))
                 );
                 orderManager.addSellOrder(info);
-                log.debug("[NEW-SELL] 신규 매도 주문 요청 성공 | 주문번호: {}", info.orderId());
+                log.debug("[NEW-SELL] OK | ID: {}", info.orderId());
             }
+        } catch (HttpClientErrorException e) {
+            positionManager.restorePosition(pulledInfo);
+            log.warn("⚠️[NEW-SELL] FAIL | REASON: {}", extractErrorMessage(e));
         } catch (Exception e) {
-            acquiredLedger.restoreAcquired(pulledInfo);
-            log.error("[NEW-SELL] 신규 매도 주문 요청 실패 | 에러 메시지: {}", e.getMessage());
+            positionManager.restorePosition(pulledInfo);
+            log.error("[NEW-SELL] ERROR | MESSAGE: {}", e.getMessage());
         }
     }
 
     @Async("sellOrderExecutor")
-    public void executeRestoreSellOrder(OrderInfo info) {
+    public void restoreSellAsync(OrderInfo info) {
         try {
             BigDecimal qty = new BigDecimal(info.qty());
             BigDecimal avgBuyPrice = info.avgBuyPrice();
-            OrderParams sellParams = tradingStrategy.calculateSellOrderParams(qty, avgBuyPrice);
+            NewOrderParams sellParams = tradingStrategy.calculateSellOrderParams(qty, avgBuyPrice);
 
             ResponseEntity<NewOrderResponse> responseEntity = binanceClient.sellLimitMaker(
                     info.symbol(),
@@ -135,19 +145,22 @@ public class OrderService {
                         info.avgBuyPrice()
                 );
                 orderManager.addSellOrder(newInfo);
-                log.info("[RESTORE-SELL] 매도 주문 복구 성공 | 기존ID: {} -> 신규ID: {}", info.orderId(), newInfo.orderId());
+                log.debug("[RESTORE-SELL] OK | ID: {}", newInfo.orderId());
             }
+        } catch (HttpClientErrorException e) {
+            orderManager.addCanceledOrder(info);
+            log.warn("⚠️[RESTORE-SELL] FAIL | REASON: {}", extractErrorMessage(e));
         } catch (Exception e) {
             orderManager.addCanceledOrder(info);
-            log.error("[RESTORE-SELL] 매도 주문 복구 실패 | 에러 메시지: {}", e.getMessage());
+            log.error("[RESTORE-SELL] ERROR | MESSAGE: {}", e.getMessage());
         }
     }
 
     @Async("sellOrderExecutor")
-    public void executeCancelSellOrder(OrderInfo info) {
+    public void cancelSellAsync(OrderInfo info) {
         try {
             if (!orderManager.containsSellOrder(info.orderId())) {
-                log.debug("[CANCEL-SELL] 이미 체결 또는 취소된 매도 주문 | 주문번호: {}", info.orderId());
+                log.debug("[CANCEL-SELL] SKIP | ID: {}", info.orderId());
                 return;
             }
             orderManager.removeSellOrder(info.orderId());
@@ -160,10 +173,12 @@ public class OrderService {
             CancelOrderResponse response = responseEntity.getBody();
             if (response != null && response.orderId() != null) {
                 orderManager.addCanceledOrder(info);
-                log.debug("[CANCEL-SELL] 매도 주문 취소 요청 성공 | 주문번호: {}", info.orderId());
+                log.debug("[CANCEL-SELL] OK | ID: {}", info.orderId());
             }
+        } catch (HttpClientErrorException e) {
+            log.warn("⚠️[CANCEL-SELL] FAIL | ID: {} | REASON: {}", info.orderId(), extractErrorMessage(e));
         } catch (Exception e) {
-            log.error("[CANCEL-SELL] 매도 주문 취소 요청 실패 | 주문번호: : {}", info.orderId());
+            log.error("[CANCEL-SELL] ERROR | ID: {} | MESSAGE: {}", info.orderId(), e.getMessage());
         }
     }
 
@@ -171,7 +186,21 @@ public class OrderService {
         if (responseEntity == null) {
             return;
         }
-        String orderCount10s = responseEntity.getHeaders().getFirst("X-MBX-ORDER-COUNT-10s");
-        rateLimitManager.updateOrderCount(orderCount10s);
+
+        String rawCount = responseEntity.getHeaders().getFirst("X-MBX-ORDER-COUNT-10s");
+        if (rawCount != null && rawCount.matches("\\d+")) {
+            int count = Integer.parseInt(rawCount);
+            rateLimitManager.syncOrderCount(count);
+        }
+    }
+
+    private String extractErrorMessage(HttpClientErrorException e) {
+        try {
+            return objectMapper.readTree(e.getResponseBodyAsString())
+                    .path("msg")
+                    .asText(e.getResponseBodyAsString());
+        } catch (Exception err) {
+            return e.getMessage();
+        }
     }
 }

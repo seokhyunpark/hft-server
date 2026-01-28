@@ -2,15 +2,12 @@ package io.github.seokhyunpark.hft.trading.dto;
 
 import java.math.BigDecimal;
 
-public record OrderParams(
-        BigDecimal price,
-        BigDecimal qty
+public record NewOrderParams(
+        BigDecimal qty,
+        BigDecimal price
 ) {
     public boolean isInvalid() {
-        if (price == null || qty == null) {
-            return true;
-        }
-        return price.compareTo(BigDecimal.ZERO) <= 0 || qty.compareTo(BigDecimal.ZERO) <= 0;
+        return qty.compareTo(BigDecimal.ZERO) <= 0 || price.compareTo(BigDecimal.ZERO) <= 0;
     }
 
     public BigDecimal getUsdValue() {

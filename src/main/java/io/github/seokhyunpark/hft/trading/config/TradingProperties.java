@@ -18,13 +18,14 @@ public record TradingProperties(
 ) {
     public record Risk(
             int maxOpenOrders,
+            int maxBuyOrders,
             int maxSellOrders,
             int minSellOrders,
-            int buyOrdersLimit,
             BigDecimal buyWallThresholdUsd,
-            BigDecimal targetMargin,
-            BigDecimal priceConflictThreshold
-    ) {}
+            BigDecimal targetMultiplier,
+            BigDecimal priceConflictToleranceRate
+    ) {
+    }
 
     private static final int SCALE = 10;
 

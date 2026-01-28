@@ -1,0 +1,239 @@
+package io.github.seokhyunpark.hft.trading.processor;
+
+import java.math.BigDecimal;
+
+import org.springframework.stereotype.Component;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import io.github.seokhyunpark.hft.exchange.dto.stream.AccountUpdate;
+import io.github.seokhyunpark.hft.exchange.dto.stream.BalanceUpdate;
+import io.github.seokhyunpark.hft.exchange.dto.stream.OrderUpdate;
+import io.github.seokhyunpark.hft.exchange.listener.UserEventListener;
+import io.github.seokhyunpark.hft.trading.config.TradingProperties;
+import io.github.seokhyunpark.hft.trading.dto.NewOrderParams;
+import io.github.seokhyunpark.hft.trading.dto.OrderInfo;
+import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
+import io.github.seokhyunpark.hft.trading.executor.OrderExecutor;
+import io.github.seokhyunpark.hft.trading.manager.OrderManager;
+import io.github.seokhyunpark.hft.trading.manager.PositionManager;
+import io.github.seokhyunpark.hft.trading.manager.QuoteAssetManager;
+import io.github.seokhyunpark.hft.trading.manager.RateLimitManager;
+import io.github.seokhyunpark.hft.trading.strategy.TradingStrategy;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class UserEventProcessor implements UserEventListener {
+    private final TradingProperties props;
+    private final OrderExecutor orderExecutor;
+    private final OrderManager orderManager;
+    private final PositionManager positionManager;
+    private final QuoteAssetManager quoteAssetManager;
+    private final RateLimitManager rateLimitManager;
+    private final TradingStrategy tradingStrategy;
+
+    @Override
+    public void onAccountUpdateReceived(AccountUpdate accountUpdate) {
+        if (accountUpdate == null) {
+            return;
+        }
+        if (!"outboundAccountPosition".equals(accountUpdate.eventType())) {
+            return;
+        }
+
+        for (AccountUpdate.Balance entry : accountUpdate.balances()) {
+            if (entry.asset().equals(props.quoteAsset())) {
+                quoteAssetManager.syncQuoteBalance(new BigDecimal(entry.free()));
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void onBalanceUpdateReceived(BalanceUpdate balanceUpdate) {
+        if (balanceUpdate == null) {
+            return;
+        }
+        if (!"balanceUpdate".equals(balanceUpdate.eventType())) {
+            return;
+        }
+
+        if (props.quoteAsset().equals(balanceUpdate.asset())) {
+            quoteAssetManager.addQuoteBalance(new BigDecimal(balanceUpdate.balanceDelta()));
+        }
+    }
+
+    @Override
+    public void onOrderUpdateReceived(OrderUpdate orderUpdate) {
+        if (orderUpdate == null) {
+            return;
+        }
+        if (!"executionReport".equals(orderUpdate.eventType())) {
+            return;
+        }
+
+        if (props.symbol().equals(orderUpdate.symbol())) {
+            switch (orderUpdate.currentExecutionType()) {
+                case "NEW" -> handleNewType(orderUpdate);
+                case "TRADE" -> handleTradeType(orderUpdate);
+                case "CANCELED" -> handleCanceledType(orderUpdate);
+            }
+        }
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // ORDER_UPDATE TYPE: NEW
+    // ----------------------------------------------------------------------------------------------------
+    private void handleNewType(OrderUpdate update) {
+        switch (update.side()) {
+            case "BUY" -> {
+                handleNewBuyState(update);
+                logNewBuyState(update);
+            }
+            case "SELL" -> {
+                handleNewSellState(update);
+                logNewSellState(update);
+            }
+        }
+    }
+
+    private void handleNewBuyState(OrderUpdate update) {
+        if (orderManager.containsBuyOrder(update.orderId())) {
+            return;
+        }
+
+        OrderInfo info = new OrderInfo(
+                update.orderId(),
+                update.symbol(),
+                update.orderQty(),
+                update.orderPrice(),
+                null
+        );
+        orderManager.addBuyOrder(info);
+    }
+
+    private void handleNewSellState(OrderUpdate update) {
+        if (orderManager.containsSellOrder(update.orderId())) {
+            return;
+        }
+
+        BigDecimal estimatedAvgBuyPrice = props.scalePrice(
+                props.divide(new BigDecimal(update.orderPrice()), props.risk().targetMultiplier())
+        );
+
+        OrderInfo info = new OrderInfo(
+                update.orderId(),
+                update.symbol(),
+                update.orderQty(),
+                update.orderPrice(),
+                estimatedAvgBuyPrice
+        );
+        orderManager.addSellOrder(info);
+    }
+
+    private void logNewBuyState(OrderUpdate update) {
+        log.info("🟢[NEW-BUY] ID: {} | PRICE: {} | QTY: {}",
+                update.orderId(),
+                props.scalePrice(new BigDecimal(update.orderPrice())),
+                props.scaleQty(new BigDecimal(update.orderQty()))
+        );
+    }
+
+    private void logNewSellState(OrderUpdate update) {
+        log.info("🔴[NEW-SELL] ID: {} | PRICE: {} | QTY: {}",
+                update.orderId(),
+                props.scalePrice(new BigDecimal(update.orderPrice())),
+                props.scaleQty(new BigDecimal(update.orderQty()))
+        );
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // ORDER_UPDATE TYPE: TRADE
+    // ----------------------------------------------------------------------------------------------------
+    private void handleTradeType(OrderUpdate update) {
+        switch (update.side()) {
+            case "BUY" -> {
+                handleTradeBuyState(update);
+                logTradeBuyState(update);
+            }
+            case "SELL" -> {
+                handleTradeSellState(update);
+                logTradeSellState(update);
+            }
+        }
+    }
+
+    private void handleTradeBuyState(OrderUpdate update) {
+        BigDecimal executedQty = new BigDecimal(update.lastExecutedQty());
+        BigDecimal executedUsdValue = new BigDecimal(update.lastQuoteAssetTransactedQty());
+        positionManager.addPosition(executedQty, executedUsdValue);
+
+        if ("FILLED".equals(update.currentOrderStatus())) {
+            orderManager.removeBuyOrder(update.orderId());
+            rateLimitManager.onOrderFilled();
+        }
+
+        if (positionManager.isSellable()) {
+            PositionInfo pulledInfo = positionManager.pullPosition();
+            NewOrderParams sellParams = tradingStrategy.calculateSellOrderParams(pulledInfo);
+            orderExecutor.sellAsync(sellParams, pulledInfo);
+        }
+    }
+
+    private void handleTradeSellState(OrderUpdate update) {
+        if ("FILLED".equals(update.currentOrderStatus())) {
+            orderManager.removeSellOrder(update.orderId());
+            rateLimitManager.onOrderFilled();
+        }
+    }
+
+    private void logTradeBuyState(OrderUpdate update) {
+        log.info("🟩[TRADE-BUY] ID: {} | PRICE: {} | QTY: {}",
+                update.orderId(),
+                props.scalePrice(new BigDecimal(update.lastExecutedPrice())),
+                props.scaleQty(new BigDecimal(update.lastExecutedQty()))
+        );
+    }
+
+    private void logTradeSellState(OrderUpdate update) {
+        log.info("🟥[TRADE-SELL] ID: {} | PRICE: {} | QTY: {}",
+                update.orderId(),
+                props.scalePrice(new BigDecimal(update.lastExecutedPrice())),
+                props.scaleQty(new BigDecimal(update.lastExecutedQty()))
+        );
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // ORDER_UPDATE TYPE: CANCELED
+    // ----------------------------------------------------------------------------------------------------
+    private void handleCanceledType(OrderUpdate update) {
+        switch (update.side()) {
+            case "BUY" -> {
+                handleCanceledBuyState(update);
+                logCanceledBuyState(update);
+            }
+            case "SELL" -> {
+                handleCanceledSellState(update);
+                logCanceledSellState(update);
+            }
+        }
+    }
+
+    private void handleCanceledBuyState(OrderUpdate update) {
+        orderManager.removeBuyOrder(update.orderId());
+    }
+
+    private void handleCanceledSellState(OrderUpdate update) {
+        orderManager.removeSellOrder(update.orderId());
+    }
+
+    private void logCanceledBuyState(OrderUpdate update) {
+        log.info("🟧[CANCELED-BUY] ID: {}", update.orderId());
+    }
+
+    private void logCanceledSellState(OrderUpdate update) {
+        log.info("🟧[CANCELED-SELL] ID: {}", update.orderId());
+    }
+}

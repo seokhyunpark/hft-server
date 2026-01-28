@@ -8,31 +8,32 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.stereotype.Component;
 
-import io.github.seokhyunpark.hft.exchange.dto.stream.PartialBookDepth;
-import io.github.seokhyunpark.hft.trading.config.TradingProperties;
-import io.github.seokhyunpark.hft.trading.dto.OrderParams;
-import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import io.github.seokhyunpark.hft.exchange.dto.stream.PartialBookDepth;
+import io.github.seokhyunpark.hft.trading.config.TradingProperties;
+import io.github.seokhyunpark.hft.trading.dto.NewOrderParams;
+import io.github.seokhyunpark.hft.trading.dto.PositionInfo;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class TradingStrategy {
-    private final TradingProperties tradingProperties;
+    private final TradingProperties props;
 
     private final AtomicReference<BigDecimal> latestBestAskPrice = new AtomicReference<>(BigDecimal.ZERO);
 
     // ----------------------------------------------------------------------------------------------------
     // 매수 주문 전략
     // ----------------------------------------------------------------------------------------------------
-    public OrderParams calculateBuyOrderParams(PartialBookDepth depth) {
+    public NewOrderParams calculateBuyOrderParams(PartialBookDepth depth) {
         BigDecimal price = calculateBuyPrice(depth);
         if (price.compareTo(BigDecimal.ZERO) <= 0) {
-            return new OrderParams(BigDecimal.ZERO, BigDecimal.ZERO);
+            return new NewOrderParams(BigDecimal.ZERO, BigDecimal.ZERO);
         }
         BigDecimal qty = calculateBuyQty(price);
-        return new OrderParams(price, qty);
+        return new NewOrderParams(qty, price);
     }
 
     private BigDecimal calculateBuyPrice(PartialBookDepth depth) {
@@ -48,43 +49,45 @@ public class TradingStrategy {
         BigDecimal qty = new BigDecimal(bid.getLast());
         BigDecimal usd = price.multiply(qty);
 
-        return usd.compareTo(tradingProperties.risk().buyWallThresholdUsd()) >= 0;
+        return usd.compareTo(props.risk().buyWallThresholdUsd()) >= 0;
     }
 
     private BigDecimal applyPriceOffset(List<String> bid) {
-        BigDecimal rawPrice = new BigDecimal(bid.getFirst()).add(tradingProperties.priceTickSize());
-        return rawPrice.setScale(tradingProperties.priceTickSize().scale(), RoundingMode.FLOOR);
+        BigDecimal price = new BigDecimal(bid.getFirst());
+        BigDecimal appliedPrice = price.add(props.priceTickSize());
+        return props.scalePrice(appliedPrice);
     }
 
     private BigDecimal calculateBuyQty(BigDecimal price) {
-        if (price.compareTo(BigDecimal.ZERO) <= 0) {
-            return BigDecimal.ZERO;
-        }
-        return tradingProperties.minOrderSize().divide(price, tradingProperties.qtyTickSize().scale(), RoundingMode.CEILING);
+        return props.minOrderSize().divide(
+                price, props.qtyTickSize().scale(), RoundingMode.CEILING
+        );
     }
 
     // ----------------------------------------------------------------------------------------------------
     // 매도 주문 전략
     // ----------------------------------------------------------------------------------------------------
     public void updateBestAskPrice(PartialBookDepth depth) {
-        if (depth != null && depth.asks() != null && !depth.asks().isEmpty()) {
-            BigDecimal lowestAskPrice = new BigDecimal(depth.asks().getFirst().getFirst());
-            BigDecimal bestAskPrice = lowestAskPrice.subtract(tradingProperties.priceTickSize());
-            latestBestAskPrice.set(bestAskPrice);
+        if (depth == null || depth.asks() == null || !depth.asks().isEmpty()) {
+            return;
         }
+        BigDecimal lowestAskPrice = new BigDecimal(depth.asks().getFirst().getFirst());
+        BigDecimal bestAskPrice = lowestAskPrice.subtract(props.priceTickSize());
+        BigDecimal scaledPrice = props.scalePrice(bestAskPrice);
+        latestBestAskPrice.set(scaledPrice);
     }
 
-    public OrderParams calculateSellOrderParams(PositionInfo info) {
-        return calculateSellOrderParams(info.totalQty(), info.getAvgPrice());
+    public NewOrderParams calculateSellOrderParams(PositionInfo info) {
+        return calculateSellOrderParams(info.totalQty(), info.getAvgPrice(props.priceTickSize().scale()));
     }
 
-    public OrderParams calculateSellOrderParams(BigDecimal qty, BigDecimal avgBuyPrice) {
-        BigDecimal targetAskPrice = avgBuyPrice.multiply(tradingProperties.risk().targetMargin());
+    public NewOrderParams calculateSellOrderParams(BigDecimal qty, BigDecimal avgBuyPrice) {
+        BigDecimal targetAskPrice = avgBuyPrice.multiply(props.risk().targetMultiplier());
         BigDecimal bestAskPrice = targetAskPrice.max(latestBestAskPrice.get());
 
-        BigDecimal scaledPrice = tradingProperties.scalePrice(bestAskPrice);
-        BigDecimal scaleQty = tradingProperties.scaleQty(qty);
+        BigDecimal scaledPrice = props.scalePrice(bestAskPrice);
+        BigDecimal scaledQty = props.scaleQty(qty);
 
-        return new OrderParams(scaledPrice, scaleQty);
+        return new NewOrderParams(scaledQty, scaledPrice);
     }
 }
